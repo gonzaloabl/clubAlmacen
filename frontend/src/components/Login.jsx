@@ -1,5 +1,4 @@
-// frontend/src/components/Login.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export function Login() {
@@ -7,7 +6,12 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [name, setName] = useState('');
-  const { login, register, error, loading } = useAuth();
+  const { login, register, error, loading, user } = useAuth();
+
+  // Si ya está autenticado, no mostrar el login
+  if (user) {
+    return null; // El efecto en App se encargará de redirigir
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,13 +24,25 @@ export function Login() {
       const result = await register(name, email, password);
       if (result.success) {
         console.log('¡Registro exitoso!');
+        // La redirección se maneja automáticamente en App.jsx
       }
     } else {
       const result = await login(email, password);
       if (result.success) {
         console.log('¡Inicio de sesión exitoso!');
+        // La redirección se maneja automáticamente en App.jsx
       }
     }
+  };
+
+  const handleToggle = () => {
+    // Limpiar los campos y el error al cambiar entre login y registro
+    setEmail('');
+    setPassword('');
+    setName('');
+    // No podemos acceder a setError directamente, pero el contexto ya maneja el error
+    // El error se limpiará cuando se intente una nueva acción
+    setIsRegistering(!isRegistering);
   };
 
   return (
@@ -89,10 +105,7 @@ export function Login() {
         
         <button
           type="button"
-          onClick={() => {
-            setIsRegistering(!isRegistering);
-            setError(null);
-          }}
+          onClick={handleToggle}
           style={styles.toggleButton}
           disabled={loading}
         >

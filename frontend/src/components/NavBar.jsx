@@ -1,6 +1,12 @@
+import { Link } from 'react-router-dom';
+
 export function NavBar ({name,link}) {
     return (
     <nav className = 'NavBar'>
-            <a className = 'nb-lista' href={link}>{name}</a>
-    </nav> )
+        <Link className='nb-lista' to={link}>
+            {name}
+        </Link>
+    </nav> 
+ )
+
 }

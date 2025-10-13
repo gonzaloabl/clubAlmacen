@@ -1,4 +1,3 @@
-// frontend/src/services/api.js
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Helper para manejar respuestas
@@ -112,9 +111,120 @@ export const productAPI = {
   },
 };
 
+
+export const categoryAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_URL}/api/categories`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return handleResponse(response);
+  },
+
+  create: async (categoryData) => {
+    const response = await fetch(`${API_URL}/api/categories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(categoryData),
+    });
+    return handleResponse(response);
+  },
+};
+
+
+// API de publicaciones
+export const postAPI = {
+  getAll: async (filters = {}) => {
+    const queryParams = new URLSearchParams();
+    
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) queryParams.append(key, value);
+    });
+    
+    const response = await fetch(`${API_URL}/api/posts?${queryParams}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return handleResponse(response);
+  },
+
+  getById: async (id) => {
+    const response = await fetch(`${API_URL}/api/posts/${id}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return handleResponse(response);
+  },
+
+  create: async (postData) => {
+    const response = await fetch(`${API_URL}/api/posts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(postData),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (id, postData) => {
+    const response = await fetch(`${API_URL}/api/posts/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(postData),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id) => {
+    const response = await fetch(`${API_URL}/api/posts/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse(response);
+  },
+
+  addComment: async (id, content) => {
+    const response = await fetch(`${API_URL}/api/posts/${id}/comments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ content }),
+    });
+    return handleResponse(response);
+  },
+
+  toggleLike: async (id) => {
+    const response = await fetch(`${API_URL}/api/posts/${id}/like`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse(response);
+  },
+};
+
 export default {
   auth: authAPI,
   user: userAPI,
-  cart: cartAPI,
-  product: productAPI,
+  category: categoryAPI,
+  post: postAPI,
 };
+

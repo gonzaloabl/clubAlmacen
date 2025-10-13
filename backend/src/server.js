@@ -6,6 +6,8 @@ import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import productRoutes from './routes/productRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import postRoutes from './routes/postRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -26,6 +28,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes); 
+app.use('/api/posts', postRoutes);
 
 app.get('/api/ping', (req, res) => {
   res.json({ message: '🐶 ¡Backend activo, mi perro loco!' });
