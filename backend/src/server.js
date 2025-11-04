@@ -13,7 +13,7 @@ import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import googleAuthRoutes from './routes/googleAuthRoutes.js';
-import passport from './config/passport.js';
+import passport, { configurePassport } from './config/passport.js';
 
 
 
@@ -25,6 +25,8 @@ app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
+configurePassport();
+app.use(passport.initialize())
 
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -33,8 +35,8 @@ mongoose.connect(process.env.MONGODB_URI)
 
 
 // Ruta de prueba
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+
+
 app.use('/api/cart', cartRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);

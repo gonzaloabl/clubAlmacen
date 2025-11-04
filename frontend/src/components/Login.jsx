@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { GoogleAuthButton } from './GoogleAuthButton.jsx';
+
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -102,10 +104,18 @@ export function Login() {
         >
           {loading ? '⏳ Procesando...' : isRegistering ? '✅ Registrarse' : '🚀 Iniciar Sesión'}
         </button>
+        <div style={styles.divider}>
+          <span style={styles.dividerText}>o</span>
+        </div>
+
+        <GoogleAuthButton type={isRegistering ? 'register' : 'login'} />
         
         <button
           type="button"
-          onClick={handleToggle}
+          onClick={() => {
+            setIsRegistering(!isRegistering);
+            setError(null);
+          }}
           style={styles.toggleButton}
           disabled={loading}
         >
@@ -179,4 +189,21 @@ const styles = {
     fontSize: '14px',
     border: '1px solid #ef5350',
   },
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    margin: '20px 0',
+  },
+  dividerText: {
+    padding: '0 15px',
+    color: '#888',
+    fontSize: '14px',
+  },
+};
+
+
+styles.divider[':before'] = styles.divider[':after'] = {
+  content: '""',
+  flex: 1,
+  borderBottom: '1px solid #eee',
 };
