@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';  // ✅ CORREGIDO - nueva ruta
 import { GoogleAuthButton } from './GoogleAuthButton.jsx';
-
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -12,7 +11,7 @@ export function Login() {
 
   // Si ya está autenticado, no mostrar el login
   if (user) {
-    return null; // El efecto en App se encargará de redirigir
+    return null;
   }
 
   const handleSubmit = async (e) => {
@@ -26,24 +25,19 @@ export function Login() {
       const result = await register(name, email, password);
       if (result.success) {
         console.log('¡Registro exitoso!');
-        // La redirección se maneja automáticamente en App.jsx
       }
     } else {
       const result = await login(email, password);
       if (result.success) {
         console.log('¡Inicio de sesión exitoso!');
-        // La redirección se maneja automáticamente en App.jsx
       }
     }
   };
 
   const handleToggle = () => {
-    // Limpiar los campos y el error al cambiar entre login y registro
     setEmail('');
     setPassword('');
     setName('');
-    // No podemos acceder a setError directamente, pero el contexto ya maneja el error
-    // El error se limpiará cuando se intente una nueva acción
     setIsRegistering(!isRegistering);
   };
 
@@ -104,6 +98,7 @@ export function Login() {
         >
           {loading ? '⏳ Procesando...' : isRegistering ? '✅ Registrarse' : '🚀 Iniciar Sesión'}
         </button>
+        
         <div style={styles.divider}>
           <span style={styles.dividerText}>o</span>
         </div>
@@ -112,10 +107,7 @@ export function Login() {
         
         <button
           type="button"
-          onClick={() => {
-            setIsRegistering(!isRegistering);
-            setError(null);
-          }}
+          onClick={handleToggle}
           style={styles.toggleButton}
           disabled={loading}
         >
@@ -201,9 +193,5 @@ const styles = {
   },
 };
 
-
-styles.divider[':before'] = styles.divider[':after'] = {
-  content: '""',
-  flex: 1,
-  borderBottom: '1px solid #eee',
-};
+// ✅ ELIMINADO: Las líneas que causan error con hover
+// styles.divider[':before'] = styles.divider[':after'] = { ... }

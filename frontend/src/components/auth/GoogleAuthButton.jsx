@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from "../../hooks/useAuth";
 
 export function GoogleAuthButton({ type = "login" }) {
   const { loading } = useAuth();

@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI, userAPI } from '../services/api';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -102,6 +102,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    loadUser,
     isAuthenticated: !!user,
   };
 
@@ -109,10 +110,3 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe usarse dentro de AuthProvider');
-  }
-  return context;
-};

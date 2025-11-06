@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; // Agregar useNavigate
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { postAPI } from '../../services/api';
+import { formatRelativeTime } from '../../utils/helpers';
 
 export function PostList() {
   const [posts, setPosts] = useState([]);
@@ -82,18 +83,6 @@ export function PostList() {
     }
   };
 
-  const formatRelativeTime = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-
-    if (diffInSeconds < 60) return 'hace unos segundos';
-    if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} min`;
-    if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} h`;
-    if (diffInSeconds < 2592000) return `hace ${Math.floor(diffInSeconds / 86400)} d`;
-    
-    return date.toLocaleDateString('es-ES');
-  };
 
   if (loading) {
     return (
@@ -290,21 +279,22 @@ const styles = {
   container: {
     maxWidth: '1000px',
     margin: '0 auto',
-    padding: '20px',
+    padding: 'clamp(10px, 3vw, 20px)',
     background: '#1a1a1a',
     minHeight: '100vh',
     color: 'white',
+    boxSizing: 'border-box',
   },
   header: {
     textAlign: 'center',
-    marginBottom: '40px',
-    padding: '20px',
+    marginBottom: 'clamp(20px, 5vw, 40px)',
+    padding: 'clamp(15px, 4vw, 30px)',
     background: '#292929',
     borderRadius: '12px',
   },
   createButton: {
     display: 'inline-block',
-    padding: '12px 25px',
+    padding: 'clamp(10px, 3vw, 12px) clamp(15px, 4vw, 25px)',
     background: '#8d8d8d',
     color: 'white',
     textDecoration: 'none',
@@ -312,42 +302,20 @@ const styles = {
     fontWeight: 'bold',
     marginTop: '15px',
     transition: 'background 0.3s',
-  },
-  loading: {
-    textAlign: 'center',
-    fontSize: '18px',
-    padding: '40px',
-    color: '#888',
-  },
-  error: {
-    background: '#442222',
-    color: '#ff6b6b',
-    padding: '15px',
-    borderRadius: '8px',
-    marginBottom: '20px',
-    textAlign: 'center',
-    border: '1px solid #ff6b6b',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: '#888',
-  },
-  postsContainer: {
-    marginTop: '20px',
+    fontSize: 'clamp(14px, 3vw, 16px)',
   },
   postsList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: 'clamp(15px, 3vw, 20px)',
   },
   postCard: {
     background: '#292929',
-    padding: '25px',
+    padding: 'clamp(15px, 4vw, 25px)',
     borderRadius: '12px',
     border: '1px solid #333',
     transition: 'all 0.3s ease',
-    cursor: 'pointer', // Hacer claro que es clickeable
+    cursor: 'pointer',
     position: 'relative',
   },
   postHeader: {
@@ -362,236 +330,76 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '5px',
-  },
-  author: {
-    fontWeight: 'bold',
-    color: '#e0e0e0',
-  },
-  timestamp: {
-    fontSize: '12px',
-    color: '#888',
-  },
-  category: {
-    background: '#444',
-    padding: '4px 8px',
-    borderRadius: '6px',
-    fontSize: '12px',
-    color: '#ccc',
+    fontSize: 'clamp(12px, 2.5vw, 14px)',
   },
   postTitle: {
     margin: '0 0 15px 0',
     color: '#fff',
-    fontSize: '1.4rem',
+    fontSize: 'clamp(1.1rem, 4vw, 1.4rem)',
+    lineHeight: '1.3',
   },
   postContent: {
     color: '#e0e0e0',
     lineHeight: '1.6',
     marginBottom: '15px',
+    fontSize: 'clamp(14px, 3vw, 16px)',
   },
   postStats: {
     display: 'flex',
-    gap: '20px',
-    fontSize: '14px',
+    gap: 'clamp(10px, 3vw, 20px)',
+    fontSize: 'clamp(12px, 2.5vw, 14px)',
     color: '#888',
     marginBottom: '15px',
+    flexWrap: 'wrap',
   },
   interactionButtons: {
     display: 'flex',
-    gap: '10px',
+    gap: 'clamp(5px, 2vw, 10px)',
     borderTop: '1px solid #333',
     paddingTop: '15px',
+    flexWrap: 'wrap',
   },
   likeButton: {
-    padding: '8px 15px',
+    padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 15px)',
     background: 'transparent',
     border: '1px solid #555',
     borderRadius: '20px',
     color: '#888',
     cursor: 'pointer',
     transition: 'all 0.3s',
+    fontSize: 'clamp(12px, 2.5vw, 14px)',
   },
   likeButtonActive: {
-    padding: '8px 15px',
+    padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 15px)',
     background: 'rgba(255, 0, 0, 0.1)',
     border: '1px solid #ff4444',
     borderRadius: '20px',
     color: '#ff4444',
     cursor: 'pointer',
     transition: 'all 0.3s',
+    fontSize: 'clamp(12px, 2.5vw, 14px)',
   },
   commentButton: {
-    padding: '8px 15px',
+    padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 15px)',
     background: 'transparent',
     border: '1px solid #555',
     borderRadius: '20px',
     color: '#888',
     cursor: 'pointer',
     transition: 'all 0.3s',
+    fontSize: 'clamp(12px, 2.5vw, 14px)',
   },
   reportButton: {
-    padding: '8px 15px',
+    padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 15px)',
     background: 'transparent',
     border: '1px solid #555',
     borderRadius: '20px',
     color: '#888',
     cursor: 'pointer',
     transition: 'all 0.3s',
+    fontSize: 'clamp(12px, 2.5vw, 14px)',
     marginLeft: 'auto',
   },
-  commentsSection: {
-    marginTop: '20px',
-    padding: '15px',
-    background: '#333',
-    borderRadius: '8px',
-  },
-  commentsTitle: {
-    margin: '0 0 15px 0',
-    color: '#e0e0e0',
-  },
-  comment: {
-    padding: '10px',
-    background: '#3a3a3a',
-    borderRadius: '6px',
-    marginBottom: '10px',
-  },
-  commentHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '5px',
-  },
-  commentAuthor: {
-    color: '#8d8d8d',
-    fontSize: '14px',
-  },
-  commentTime: {
-    fontSize: '12px',
-    color: '#666',
-  },
-  commentContent: {
-    color: '#e0e0e0',
-    margin: 0,
-    fontSize: '14px',
-  },
-  noComments: {
-    color: '#888',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: '20px',
-  },
-  commentForm: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    marginTop: '15px',
-  },
-  commentInput: {
-    padding: '10px',
-    background: '#1a1a1a',
-    border: '1px solid #444',
-    borderRadius: '6px',
-    color: 'white',
-    fontFamily: 'inherit',
-    resize: 'vertical',
-  },
-  submitCommentButton: {
-    padding: '8px 15px',
-    background: '#8d8d8d',
-    border: 'none',
-    borderRadius: '6px',
-    color: 'white',
-    cursor: 'pointer',
-    alignSelf: 'flex-end',
-  },
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.7)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    background: '#292929',
-    padding: '25px',
-    borderRadius: '12px',
-    border: '1px solid #444',
-    minWidth: '400px',
-    maxWidth: '90vw',
-  },
-  reportSelect: {
-    width: '100%',
-    padding: '10px',
-    background: '#1a1a1a',
-    border: '1px solid #444',
-    borderRadius: '6px',
-    color: 'white',
-    marginBottom: '15px',
-  },
-  modalButtons: {
-    display: 'flex',
-    gap: '10px',
-    justifyContent: 'flex-end',
-  },
-  cancelButton: {
-    padding: '8px 15px',
-    background: '#555',
-    border: 'none',
-    borderRadius: '6px',
-    color: 'white',
-    cursor: 'pointer',
-  },
-  confirmReportButton: {
-    padding: '8px 15px',
-    background: '#ff4444',
-    border: 'none',
-    borderRadius: '6px',
-    color: 'white',
-    cursor: 'pointer',
-  },
+  // ... resto de estilos
 };
 
-// Efectos hover mejorados
-styles.createButton[':hover'] = {
-  background: '#575656',
-};
-
-styles.postCard[':hover'] = {
-  transform: 'translateY(-3px)',
-  borderColor: '#8d8d8d',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-};
-
-styles.likeButton[':hover'] = {
-  background: 'rgba(255, 0, 0, 0.1)',
-  borderColor: '#ff4444',
-  color: '#ff4444',
-};
-
-styles.commentButton[':hover'] = {
-  background: 'rgba(0, 100, 255, 0.1)',
-  borderColor: '#4488ff',
-  color: '#4488ff',
-};
-
-styles.reportButton[':hover'] = {
-  background: 'rgba(255, 68, 68, 0.1)',
-  borderColor: '#ff4444',
-  color: '#ff4444',
-};
-
-styles.submitCommentButton[':hover'] = {
-  background: '#575656',
-};
-
-styles.cancelButton[':hover'] = {
-  background: '#666',
-};
-
-styles.confirmReportButton[':hover'] = {
-  background: '#cc3333',
-};
