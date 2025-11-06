@@ -49,7 +49,10 @@ app.get('/api/ping', (req, res) => {
   res.json({ message: '🐶 ¡Backend activo, mi perro loco!' });
 });
 
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor backend en http://localhost:${PORT}`);
 });
+
+console.log('✅ Ruta /api/categories registrada');

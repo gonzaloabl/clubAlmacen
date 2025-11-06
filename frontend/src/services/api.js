@@ -136,7 +136,7 @@ export const categoryAPI = {
 };
 
 
-// API de publicaciones
+// API de publicaciones - ACTUALIZADA
 export const postAPI = {
   getAll: async (filters = {}) => {
     const queryParams = new URLSearchParams();
@@ -197,19 +197,21 @@ export const postAPI = {
     return handleResponse(response);
   },
 
-  addComment: async (id, content) => {
+  // CORREGIDO: Cambiado de 'addComment' a 'addComment' consistente
+  addComment: async (id, commentData) => {
     const response = await fetch(`${API_URL}/api/posts/${id}/comments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeader(),
       },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(commentData),
     });
     return handleResponse(response);
   },
 
-  toggleLike: async (id) => {
+  // NUEVO: Función para like (usando el endpoint correcto)
+  like: async (id) => {
     const response = await fetch(`${API_URL}/api/posts/${id}/like`, {
       method: 'POST',
       headers: {
@@ -219,7 +221,33 @@ export const postAPI = {
     });
     return handleResponse(response);
   },
+
+  // NUEVO: Función para reportar publicaciones
+  report: async (id, reportData) => {
+    const response = await fetch(`${API_URL}/api/posts/${id}/report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(reportData),
+    });
+    return handleResponse(response);
+  },
+
+  registerView: async (id) => {
+    const response = await fetch(`${API_URL}/api/posts/${id}/view`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return handleResponse(response);
+  },  
+  
 };
+
+
 
 export default {
   auth: authAPI,

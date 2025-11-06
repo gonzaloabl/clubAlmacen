@@ -7,6 +7,7 @@ import { useEffect } from 'react'
 import { PostList } from './components/forum/PostList.jsx';
 import { PostForm } from './components/forum/PostForm.jsx';
 import { AuthSuccess } from './components/AuthSuccess.jsx';
+import { PostDetail } from './components/forum/PostDetail';
 
 // Componente para las rutas protegidas
 function ProtectedRoute({ children }) {
@@ -217,7 +218,10 @@ function AppContent() {
           <PostForm />
         </ProtectedRoute>
       } />
-      <Route path="/auth-success" element={<AuthSuccess />} />
+      <Route path="/forum/post/:id" element={
+        <PostDetail />} />
+      <Route path="/auth-success" element={
+        <AuthSuccess />} />
       {/* Redirigir cualquier ruta no definida */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

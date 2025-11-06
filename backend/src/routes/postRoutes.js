@@ -1,6 +1,6 @@
 import express from 'express';
 import Post from '../models/Post.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect , admin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -49,18 +49,23 @@ router.get('/:id', async (req, res) => {
     const post = await Post.findById(req.params.id)
       .populate('author', 'name email')
       .populate('category', 'name color')
-      .populate('comments.user', 'name email');
+      .populate('comments.user', 'name email')
+      .populate('likes', 'name email');
+      
     
     if (!post) {
       return res.status(404).json({ message: '❌ Publicación no encontrada' });
     }
     
-    // Incrementar contador de vistas
-    post.viewCount += 1;
+    // 🔥 INCREMENTAR VISTAS - Esta es la parte clave
+    post.viewCount = (post.viewCount || 0) + 1;
     await post.save();
+    
+    console.log(`👁️ Vista incrementada para post ${post._id}: ${post.viewCount} vistas`);
     
     res.json(post);
   } catch (error) {
+    console.error('💥 Error al obtener publicación:', error);
     res.status(500).json({ message: '💥 Error al obtener publicación' });
   }
 });
@@ -194,5 +199,82 @@ router.post('/:id/like', protect, async (req, res) => {
     res.status(500).json({ message: '💥 Error al actualizar like' });
   }
 });
+
+// @desc    Reportar publicación
+// @route   POST /api/posts/:id/report
+router.post('/:id/report', protect, async (req, res) => {
+  try {
+    const { reason, description } = req.body;
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: '❌ Publicación no encontrada' });
+    }
+
+    // Verificar si el usuario ya reportó esta publicación
+    const existingReport = post.reports.find(
+      report => report.user.toString() === req.user._id.toString()
+    );
+
+    if (existingReport) {
+      return res.status(400).json({ message: '❌ Ya has reportado esta publicación' });
+    }
+
+    post.reports.push({
+      user: req.user._id,
+      reason,
+      description
+    });
+
+    post.reportCount = post.reports.length;
+    
+    // Si tiene más de 5 reportes, desactivar automáticamente
+    if (post.reportCount >= 5) {
+      post.isActive = false;
+    }
+
+    await post.save();
+    res.json({ message: '✅ Publicación reportada correctamente' });
+  } catch (error) {
+    res.status(500).json({ message: '💥 Error al reportar publicación' });
+  }
+});
+
+// @desc    Obtener publicaciones reportadas (solo admin)
+// @route   GET /api/posts/admin/reported
+router.get('/admin/reported', protect, admin, async (req, res) => {
+  try {
+    const posts = await Post.find({ reportCount: { $gt: 0 } })
+      .populate('author', 'name email')
+      .populate('reports.user', 'name email')
+      .sort({ reportCount: -1, createdAt: -1 });
+
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: '💥 Error al obtener publicaciones reportadas' });
+  }
+});
+
+// En postRoutes.js - agregar este nuevo endpoint
+router.post('/:id/view', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    
+    if (!post) {
+      return res.status(404).json({ message: '❌ Publicación no encontrada' });
+    }
+    
+    // Incrementar vistas de manera segura
+    post.viewCount = (post.viewCount || 0) + 1;
+    await post.save();
+    
+    console.log(`👁️ Vista registrada para post ${post._id}: ${post.viewCount} vistas`);
+    res.json({ viewCount: post.viewCount });
+  } catch (error) {
+    console.error('💥 Error al registrar vista:', error);
+    res.status(500).json({ message: '💥 Error al registrar vista' });
+  }
+});
+
 
 export default router;

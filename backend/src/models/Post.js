@@ -1,5 +1,21 @@
 import mongoose from 'mongoose';
 
+const commentSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  content: {
+    type: String,
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const postSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -51,6 +67,31 @@ const postSchema = new mongoose.Schema({
     default: false
   },
   viewCount: {
+    type: Number,
+    default: 0
+  },
+reports: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    reason: {
+      type: String,
+      required: true,
+      enum: ['spam', 'inappropriate', 'harassment', 'other']
+    },
+    description: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  reportCount: {
     type: Number,
     default: 0
   }

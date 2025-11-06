@@ -3,18 +3,23 @@ import mongoose from 'mongoose';
 const categorySchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, "El nombre de la categoría es obligatorio"],
-    unique: true,
+    required: true,
     trim: true
   },
   description: {
     type: String,
-    default: ""
+    required: true
   },
   color: {
     type: String,
-    default: "#8d8d8d" // Color por defecto para la categoría
+    required: true
   }
-}, { timestamps: true });
+}, {
+  timestamps: true,
+  collection: 'categories' // Forzar nombre de colección
+});
+
+// Asegurarse de que use la colección correcta
+categorySchema.set('collection', 'categories');
 
 export default mongoose.model('Category', categorySchema);

@@ -1,6 +1,6 @@
+// routes/categoryRoutes.js
 import express from 'express';
 import Category from '../models/Category.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -8,25 +8,40 @@ const router = express.Router();
 // @route   GET /api/categories
 router.get('/', async (req, res) => {
   try {
-    const categories = await Category.find({});
-    res.json(categories);
-  } catch (error) {
-    res.status(500).json({ message: '💥 Error al obtener categorías' });
-  }
-});
-
-// @desc    Crear categoría (solo admin)
-// @route   POST /api/categories
-router.post('/', protect, admin, async (req, res) => {
-  try {
-    const { name, description, color } = req.body;
-    const category = await Category.create({ name, description, color });
-    res.status(201).json(category);
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ message: '❌ La categoría ya existe' });
+    console.log('🚀 SOLICITUD RECIBIDA en /api/categories');
+    console.log('🔍 Buscando categorías en la base de datos...');
+    
+    // FORZAR la búsqueda sin await primero para debug
+    const categoriesPromise = Category.find({}).sort({ name: 1 });
+    console.log('📦 Query ejecutado, esperando resultados...');
+    
+    const categories = await categoriesPromise;
+    console.log(`✅ CATEGORÍAS ENCONTRADAS: ${categories.length}`);
+    
+    // Debug detallado de cada categoría
+    categories.forEach((cat, index) => {
+      console.log(`   ${index + 1}. ID: ${cat._id}, Nombre: "${cat.name}", Color: ${cat.color}`);
+    });
+    
+    // Verificar que los datos son correctos
+    console.log('📊 Tipo de datos:', Array.isArray(categories) ? 'Array' : typeof categories);
+    console.log('🔗 Primer elemento:', categories[0] ? 'EXISTE' : 'NO EXISTE');
+    
+    if (categories.length > 0) {
+      console.log('🎯 Enviando categorías al frontend...');
+      res.json(categories);
+    } else {
+      console.log('⚠️  No hay categorías para enviar');
+      res.json([]);
     }
-    res.status(500).json({ message: '💥 Error al crear categoría' });
+    
+  } catch (error) {
+    console.error('💥 ERROR CRÍTICO en /api/categories:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 
