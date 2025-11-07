@@ -61,12 +61,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password) => {
+   // 🆕 ACTUALIZADA: Ahora acepta role y adminCreationCode
+  const register = async (name, email, password, role = 'locatario', adminCreationCode = '') => {
     try {
       setError(null);
       setLoading(true);
-      console.log('🔄 Intentando registro...');
-      const data = await authAPI.register({ name, email, password });
+      console.log('🔄 Intentando registro...', { name, email, role });
+      
+      // 🆕 Enviamos todos los datos al backend
+      const data = await authAPI.register({ 
+        name, 
+        email, 
+        password, 
+        role,
+        adminCreationCode 
+      });
+      
       console.log('✅ Registro exitoso:', data);
       
       localStorage.setItem('token', data.token);
@@ -91,7 +101,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setUser(null);
     setError(null);
-    // Limpiar completamente el estado
     setLoading(false);
   };
 
@@ -106,7 +115,5 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
   };
 
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-

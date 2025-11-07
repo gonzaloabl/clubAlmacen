@@ -14,6 +14,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import googleAuthRoutes from './routes/googleAuthRoutes.js';
 import passport, { configurePassport } from './config/passport.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 
 
@@ -44,6 +45,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes); 
 app.use('/api/posts', postRoutes);
 app.use('/api/auth/google', googleAuthRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/ping', (req, res) => {
   res.json({ message: '🐶 ¡Backend activo, mi perro loco!' });

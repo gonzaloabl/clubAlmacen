@@ -16,10 +16,10 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",
     "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0"
+    "passport-google-oauth20": "^2.0.0",
+    "yup": "^1.7.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
   }
-  
 }

@@ -10,6 +10,7 @@ import { PostDetail } from './components/forum/PostDetail';
 import { LandingPage } from './components/pages/LandingPage.jsx';
 import { NavBar } from './components/common/NavBar.jsx';
 import {Noticias} from './components/common/Noticias.jsx';
+import { TestRoles } from './components/TestRoles';
 
 // Componente para las rutas protegidas
 function ProtectedRoute({ children }) {
@@ -149,6 +150,7 @@ export function App() {
   return (
     <Router>
       <AppContent />
+      <TestRoles />
     </Router>
   )
 }
