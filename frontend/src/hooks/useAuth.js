@@ -6,5 +6,11 @@ export const useAuth = () => {
   if (!context) {
     throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
+  
+  // ✅ Asegurarse de que completeGoogleRegistration esté disponible
+  if (!context.completeGoogleRegistration) {
+    console.warn('⚠️ completeGoogleRegistration no está disponible en el contexto');
+  }
+  
   return context;
 };

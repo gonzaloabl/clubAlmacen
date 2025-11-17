@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// ✅ CONFIGURACIÓN CORRECTA PARA PROXY DE VITE
+const API_URL = '/api'; // Ruta relativa para que el proxy funcione
 
 // Helper para manejar respuestas
 const handleResponse = async (response) => {
@@ -20,7 +21,7 @@ const getAuthHeader = () => {
 // API de autenticación
 export const authAPI = {
   register: async (userData) => {
-    const response = await fetch(`${API_URL}/api/auth/register`, {
+    const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
@@ -29,7 +30,7 @@ export const authAPI = {
   },
 
   login: async (credentials) => {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
+    const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -41,7 +42,7 @@ export const authAPI = {
 // API de usuario
 export const userAPI = {
   getProfile: async () => {
-    const response = await fetch(`${API_URL}/api/users/me`, {
+    const response = await fetch(`${API_URL}/users/me`, {
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeader(),
@@ -54,7 +55,7 @@ export const userAPI = {
 // API de carrito
 export const cartAPI = {
   getCart: async () => {
-    const response = await fetch(`${API_URL}/api/cart`, {
+    const response = await fetch(`${API_URL}/cart`, {
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeader(),
@@ -64,7 +65,7 @@ export const cartAPI = {
   },
 
   addToCart: async (productId, quantity = 1) => {
-    const response = await fetch(`${API_URL}/api/cart`, {
+    const response = await fetch(`${API_URL}/cart`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -76,7 +77,7 @@ export const cartAPI = {
   },
 
   removeFromCart: async (productId) => {
-    const response = await fetch(`${API_URL}/api/cart/${productId}`, {
+    const response = await fetch(`${API_URL}/cart/${productId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +91,7 @@ export const cartAPI = {
 // API de productos
 export const productAPI = {
   createProduct: async (productData) => {
-    const response = await fetch(`${API_URL}/api/products`, {
+    const response = await fetch(`${API_URL}/products`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -102,7 +103,7 @@ export const productAPI = {
   },
 
   getAllProducts: async () => {
-    const response = await fetch(`${API_URL}/api/products`, {
+    const response = await fetch(`${API_URL}/products`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -111,10 +112,9 @@ export const productAPI = {
   },
 };
 
-
 export const categoryAPI = {
   getAll: async () => {
-    const response = await fetch(`${API_URL}/api/categories`, {
+    const response = await fetch(`${API_URL}/categories`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -123,7 +123,7 @@ export const categoryAPI = {
   },
 
   create: async (categoryData) => {
-    const response = await fetch(`${API_URL}/api/categories`, {
+    const response = await fetch(`${API_URL}/categories`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -135,8 +135,7 @@ export const categoryAPI = {
   },
 };
 
-
-// API de publicaciones - ACTUALIZADA
+// API de publicaciones
 export const postAPI = {
   getAll: async (filters = {}) => {
     const queryParams = new URLSearchParams();
@@ -145,7 +144,7 @@ export const postAPI = {
       if (value) queryParams.append(key, value);
     });
     
-    const response = await fetch(`${API_URL}/api/posts?${queryParams}`, {
+    const response = await fetch(`${API_URL}/posts?${queryParams}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -154,7 +153,7 @@ export const postAPI = {
   },
 
   getById: async (id) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}`, {
+    const response = await fetch(`${API_URL}/posts/${id}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -163,7 +162,7 @@ export const postAPI = {
   },
 
   create: async (postData) => {
-    const response = await fetch(`${API_URL}/api/posts`, {
+    const response = await fetch(`${API_URL}/posts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -175,7 +174,7 @@ export const postAPI = {
   },
 
   update: async (id, postData) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}`, {
+    const response = await fetch(`${API_URL}/posts/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -187,7 +186,7 @@ export const postAPI = {
   },
 
   delete: async (id) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}`, {
+    const response = await fetch(`${API_URL}/posts/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -197,9 +196,8 @@ export const postAPI = {
     return handleResponse(response);
   },
 
-  // CORREGIDO: Cambiado de 'addComment' a 'addComment' consistente
   addComment: async (id, commentData) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}/comments`, {
+    const response = await fetch(`${API_URL}/posts/${id}/comments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -210,9 +208,8 @@ export const postAPI = {
     return handleResponse(response);
   },
 
-  // NUEVO: Función para like (usando el endpoint correcto)
   like: async (id) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}/like`, {
+    const response = await fetch(`${API_URL}/posts/${id}/like`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -222,9 +219,8 @@ export const postAPI = {
     return handleResponse(response);
   },
 
-  // NUEVO: Función para reportar publicaciones
   report: async (id, reportData) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}/report`, {
+    const response = await fetch(`${API_URL}/posts/${id}/report`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -236,7 +232,7 @@ export const postAPI = {
   },
 
   registerView: async (id) => {
-    const response = await fetch(`${API_URL}/api/posts/${id}/view`, {
+    const response = await fetch(`${API_URL}/posts/${id}/view`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -244,10 +240,7 @@ export const postAPI = {
     });
     return handleResponse(response);
   },  
-  
 };
-
-
 
 export default {
   auth: authAPI,
@@ -255,4 +248,3 @@ export default {
   category: categoryAPI,
   post: postAPI,
 };
-

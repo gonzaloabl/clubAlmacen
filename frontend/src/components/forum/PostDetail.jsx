@@ -240,6 +240,11 @@ export function PostDetail() {
               >
                 📤 Enviar comentario
               </button>
+
+              <div style={styles.loginToComment}>
+                <p>Debes <Link to="/login" style={styles.loginLink}>iniciar sesión</Link> para poder comentar.</p>
+              </div>
+
             </div>
           )}
         </div>
@@ -437,4 +442,15 @@ const styles = {
     color: 'white',
     cursor: 'pointer',
   },
+  loginToComment: {
+  textAlign: 'center',
+  padding: '20px',
+  background: '#333',
+  borderRadius: '8px',
+  margin: '20px 0',
+},
+loginLink: {
+  color: '#8d8d8d', // (o tu color de acento)
+  fontWeight: 'bold',
+}
 };

@@ -21,13 +21,16 @@ router.get('/status', (req, res) => {
 // @desc    Iniciar autenticación con Google
 // @route   GET /api/auth/google
 router.get('/', (req, res, next) => {
+  console.log('🔍 DEBUG - Iniciando autenticación Google');
+  
   if (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID === 'placeholder_por_ahora') {
+    console.log('❌ DEBUG - Google Auth no configurado');
     return res.status(503).json({ 
       message: 'Google Auth no configurado. Agrega GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET al .env' 
     });
   }
   
-  // ✅ CORREGIDO: Usar passport.authenticate correctamente
+  console.log('✅ DEBUG - Redirigiendo a Google OAuth');
   passport.authenticate('google', { 
     scope: ['profile', 'email'] 
   })(req, res, next);
@@ -36,27 +39,45 @@ router.get('/', (req, res, next) => {
 // @desc    Callback de Google
 // @route   GET /api/auth/google/callback
 router.get('/callback', (req, res, next) => {
+  console.log('🔍 DEBUG - Llegó al callback de Google');
+  
   if (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID === 'placeholder_por_ahora') {
+    console.log('❌ DEBUG - Google no configurado en callback');
     return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_not_configured`);
   }
 
-  // ✅ CORREGIDO: Manejo correcto del callback
+  console.log('✅ DEBUG - Autenticando con Google...');
   passport.authenticate('google', { 
     failureRedirect: `${process.env.FRONTEND_URL}/login?error=auth_failed`,
     session: false 
   })(req, res, next);
-}, (req, res) => {
+}, async (req, res) => {
   try {
-    // Solo se ejecuta si la autenticación fue exitosa
+    console.log('🔍 DEBUG - Procesando callback exitoso');
+    console.log('🔍 DEBUG - Usuario autenticado:', {
+      id: req.user._id,
+      email: req.user.email,
+      registrationComplete: req.user.registrationComplete,
+      oauthProvider: req.user.oauthProvider,
+      role: req.user.role
+    });
+
     const token = generateToken(req.user._id);
-    
-    // Redirigir al frontend con el token
-    const redirectUrl = `${process.env.FRONTEND_URL}/auth-success?token=${token}&user=${encodeURIComponent(req.user.name)}`;
-    console.log('✅ Autenticación Google exitosa, redirigiendo a:', redirectUrl);
-    
+    console.log('🔍 DEBUG - Token generado:', token ? '✅' : '❌');
+
+    // Verificar si debe completar registro
+    if (!req.user.registrationComplete && req.user.oauthProvider === 'google') {
+      const redirectUrl = `${process.env.FRONTEND_URL}/complete-google-registration?token=${token}`;
+      console.log('🔄 DEBUG - Redirigiendo a completar registro:', redirectUrl);
+      return res.redirect(redirectUrl);
+    }
+
+    console.log('✅ DEBUG - Usuario ya completó registro, redirigiendo a dashboard');
+    const redirectUrl = `${process.env.FRONTEND_URL}/auth-success?token=${token}`;
     res.redirect(redirectUrl);
+
   } catch (error) {
-    console.error('Error generando token:', error);
+    console.error('💥 DEBUG - Error en callback:', error);
     res.redirect(`${process.env.FRONTEND_URL}/login?error=token_generation_failed`);
   }
 });

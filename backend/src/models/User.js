@@ -14,17 +14,24 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, "🔒 La contraseña es obligatoria"],
+    required: function() {
+    // Solo requerido para autenticación local, no para Google
+    return this.oauthProvider === 'local';
+  },
     minlength: [6, "⚠️ Mínimo 6 caracteres"]
   },
   role: {
     type: String,
-    enum: ['locatario', 'proveedor', 'admin'],
+    enum: ['locatario', 'proveedor', 'admin','pending'],
     default: 'locatario'
   },
   adminCreationCode: {
     type: String,
     select: false
+  },
+  registrationComplete: {
+    type: Boolean,
+    default: true, //para los usuarios locales
   },
   cart: {
     type: [

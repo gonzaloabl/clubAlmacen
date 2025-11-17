@@ -15,6 +15,7 @@ import postRoutes from './routes/postRoutes.js';
 import googleAuthRoutes from './routes/googleAuthRoutes.js';
 import passport, { configurePassport } from './config/passport.js';
 import adminRoutes from './routes/adminRoutes.js';
+import googleCompleteRoutes from './routes/googleCompleteRoutes.js';
 
 
 
@@ -22,12 +23,20 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json());
 app.use(passport.initialize());
-
 configurePassport();
-app.use(passport.initialize())
+// Debug de rutas (agregar temporalmente)
+app.use((req, res, next) => {
+  console.log(`🔍 [${req.method}] ${req.originalUrl}`);
+  next();
+});
 
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -37,20 +46,45 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // Ruta de prueba
 
-
+app.use('/api/auth', authRoutes);
+app.use('/api/auth/google', googleAuthRoutes);
+app.use('/api/auth/google/complete', googleCompleteRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes); 
 app.use('/api/posts', postRoutes);
-app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/ping', (req, res) => {
   res.json({ message: '🐶 ¡Backend activo, mi perro loco!' });
 });
 
+// � DEBUG: Listar todas las rutas montadas
+app.use((req, res, next) => {
+  console.log('🔍 Solicitud recibida:', {
+    method: req.method,
+    url: req.url,
+    originalUrl: req.originalUrl,
+    baseUrl: req.baseUrl,
+    path: req.path
+  });
+  next();
+});
+
+// 🆕 MANEJO DE ERRORES GLOBAL
+app.use((err, req, res, next) => {
+  console.error('💥 Error global no capturado:', err);
+  res.status(500).json({ 
+    message: 'Error interno del servidor',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Algo salió mal'
+  });
+});
+
+// 🆕 MANEJADOR PARA RUTAS NO ENCONTRADAS
+app.use('*', (req, res) => {
+  res.status(404).json({ message: 'Ruta no encontrada' });
+});
 
 // Iniciar servidor
 app.listen(PORT, () => {
@@ -58,3 +92,14 @@ app.listen(PORT, () => {
 });
 
 console.log('✅ Ruta /api/categories registrada');
+// � DEBUG: Listar todas las rutas montadas
+app.use((req, res, next) => {
+  console.log('🔍 Solicitud recibida:', {
+    method: req.method,
+    url: req.url,
+    originalUrl: req.originalUrl,
+    baseUrl: req.baseUrl,
+    path: req.path
+  });
+  next();
+});

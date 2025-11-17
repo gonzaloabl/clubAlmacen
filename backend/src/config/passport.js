@@ -26,6 +26,12 @@ export const configurePassport = () => {
 
           if (user) {
             console.log('✅ Usuario existente encontrado:', user.email);
+            console.log('🔍 DEBUG - Usuario listo para callback:', {
+              id: user._id,
+              email: user.email, 
+              registrationComplete: user.registrationComplete,
+              oauthProvider: user.oauthProvider
+            });
             return done(null, user);
           }
 
@@ -38,20 +44,35 @@ export const configurePassport = () => {
             user.isVerified = true;
             user.oauthProvider = 'google';
             await user.save();
+            console.log('🔍 DEBUG - Usuario vinculado listo para callback:', {
+              id: user._id,
+              email: user.email, 
+              registrationComplete: user.registrationComplete,
+              oauthProvider: user.oauthProvider
+            });
             return done(null, user);
           }
 
-          console.log('👤 Creando nuevo usuario desde Google:', profile.emails[0].value);
+          // ✅ CORREGIDO: Asignar el resultado de User.create a la variable user
           user = await User.create({
             googleId: profile.id,
             name: profile.displayName,
             email: profile.emails[0].value,
             avatar: profile.photos[0].value,
-            password: 'oauth-google',
-            isVerified: true,
-            oauthProvider: 'google'
+            oauthProvider: 'google',
+            role: 'pending',
+            registrationComplete: false,
+            isVerified: true
           });
 
+          console.log('✅ Nuevo usuario Google creado:', user.email);
+          console.log('🔍 DEBUG - Nuevo usuario listo para callback:', {
+            id: user._id,
+            email: user.email, 
+            registrationComplete: user.registrationComplete,
+            oauthProvider: user.oauthProvider
+          });
+          
           return done(null, user);
         } catch (error) {
           console.error('💥 Error en autenticación Google:', error);

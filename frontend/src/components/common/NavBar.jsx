@@ -1,131 +1,137 @@
+// frontend/src/components/common/NavBar.jsx
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useRole } from '../../hooks/useRole'; // 🆕 Importar el hook de roles
 
 export function NavBar() {
   const { user, logout } = useAuth();
+  const { currentRole } = useRole(); // 🆕 Obtener el rol actual
 
-  console.log('🔍 NavBar renderizado. Usuario:', user);
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
-    <nav style={{
-      background: 'rgba(255, 255, 255, 0.95)',
-      backdropFilter: 'blur(10px)',
-      borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-      padding: '0',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1000,
-      boxShadow: '0 2px 20px rgba(0, 0, 0, 0.1)',
-    }}>
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '15px 20px',
-      }}>
-        {/* Logo */}
-        <Link to="/" style={{
-          display: 'flex',
-          alignItems: 'center',
-          textDecoration: 'none',
-          color: '#4f46e5',
-          fontWeight: '700',
-          fontSize: '1.5rem',
-        }}>
-          <span style={{ fontSize: '1.8rem', marginRight: '8px' }}>🏪</span>
-          Club Almacen
-        </Link>
-
-        {/* Menú de navegación */}
-        <div style={{
-          display: 'flex',
-          gap: '30px',
-          alignItems: 'center',
-        }}>
-          <Link to="/" style={{
-            color: '#374151',
-            textDecoration: 'none',
-            fontWeight: '500',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            transition: 'all 0.3s ease',
-          }}>
-            Inicio
+    <nav style={styles.navbar}>
+      <div style={styles.logo}>
+        <Link to="/" style={styles.logoLink}>Club Almacén</Link>
+      </div>
+      
+      <div style={styles.menu}>
+        {/* Enlaces públicos */}
+        <Link to="/" style={styles.menuItem}>Inicio</Link>
+        <Link to="/noticias" style={styles.menuItem}>Noticias</Link>
+        
+        {/* Enlaces protegidos */}
+        {user && (
+          <Link to="/forum" style={styles.menuItem}>Foro</Link>
+        )}
+        
+        {/* 🆕 MENÚ DE USUARIO */}
+        {user ? (
+          <div style={styles.userMenu}>
+            {/* 🆕 ENLACE AL DASHBOARD DESDE EL PERFIL */}
+            <Link to="/dashboard" style={styles.profileLink}>
+              <div style={styles.userInfo}>
+                <span style={styles.userName}>{user.name}</span>
+                <span style={styles.userRole}>({currentRole})</span>
+              </div>
+            </Link>
+            
+            <button onClick={handleLogout} style={styles.logoutButton}>
+              Cerrar Sesión
+            </button>
+          </div>
+        ) : (
+          <Link to="/login" style={styles.loginButton}>
+            Iniciar Sesión
           </Link>
-          <Link to="/noticias" style={{
-            color: '#374151',
-            textDecoration: 'none',
-            fontWeight: '500',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            transition: 'all 0.3s ease',
-          }}>
-            Noticias
-          </Link>
-          <Link to="/forum" style={{
-            color: '#374151',
-            textDecoration: 'none',
-            fontWeight: '500',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            transition: 'all 0.3s ease',
-          }}>
-            Foro
-          </Link>
-        </div>
-
-        {/* Sección de usuario */}
-        <div>
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <span style={{ color: '#374151', fontWeight: '500' }}>
-                👋 Hola, {user.name}
-              </span>
-              <button 
-                onClick={logout}
-                style={{
-                  padding: '8px 16px',
-                  background: 'transparent',
-                  color: '#ef4444',
-                  border: '2px solid #ef4444',
-                  borderRadius: '20px',
-                  cursor: 'pointer',
-                  fontWeight: '500',
-                }}
-              >
-                Cerrar Sesión
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Link to="/login" style={{
-                padding: '10px 20px',
-                color: '#4f46e5',
-                textDecoration: 'none',
-                border: '2px solid #4f46e5',
-                borderRadius: '25px',
-                fontWeight: '500',
-              }}>
-                Iniciar Sesión
-              </Link>
-              <Link to="/login?mode=register" style={{
-                padding: '10px 20px',
-                background: '#4f46e5',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '25px',
-                fontWeight: '500',
-              }}>
-                Registrarse
-              </Link>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </nav>
   );
 }
+
+const styles = {
+  navbar: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 20px',
+    background: '#333',
+    color: 'white',
+    zIndex: 1000,
+    boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+  },
+  logo: {
+    fontSize: '24px',
+    fontWeight: 'bold'
+  },
+  logoLink: {
+    color: 'white',
+    textDecoration: 'none'
+  },
+  menu: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '25px'
+  },
+  menuItem: {
+    color: 'white',
+    textDecoration: 'none',
+    padding: '8px 12px',
+    borderRadius: '5px',
+    transition: 'background 0.3s ease'
+  },
+  userMenu: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px'
+  },
+  profileLink: {
+    color: 'white',
+    textDecoration: 'none',
+    padding: '8px 15px',
+    background: '#8d8d8d',
+    borderRadius: '20px',
+    transition: 'background 0.3s ease',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  userInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end'
+  },
+  userName: {
+    fontWeight: 'bold',
+    fontSize: '14px'
+  },
+  userRole: {
+    fontSize: '11px',
+    opacity: '0.8',
+    fontStyle: 'italic'
+  },
+  logoutButton: {
+    background: '#dc3545',
+    color: 'white',
+    border: 'none',
+    padding: '8px 15px',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    transition: 'background 0.3s ease'
+  },
+  loginButton: {
+    background: '#8d8d8d',
+    color: 'white',
+    padding: '8px 15px',
+    borderRadius: '5px',
+    textDecoration: 'none',
+    transition: 'background 0.3s ease'
+  }
+};

@@ -4,7 +4,7 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// ✅ MANTENEMOS TU RUTA ACTUAL /me
+// ✅ CORREGIDO: Incluir todos los campos necesarios
 // @desc    Obtener perfil del usuario
 // @route   GET /api/users/me
 // @access  Privado
@@ -13,7 +13,11 @@ router.get('/me', protect, (req, res) => {
     id: req.user._id,
     name: req.user.name,
     email: req.user.email,
-    role: req.user.role
+    role: req.user.role,
+    oauthProvider: req.user.oauthProvider, // 🆕 AÑADIR
+    registrationComplete: req.user.registrationComplete, // 🆕 AÑADIR
+    avatar: req.user.avatar, // 🆕 AÑADIR (opcional pero útil)
+    isVerified: req.user.isVerified // 🆕 AÑADIR (opcional)
   });
 });
 

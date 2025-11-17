@@ -57,9 +57,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: '❌ Publicación no encontrada' });
     }
     
-    // 🔥 INCREMENTAR VISTAS - Esta es la parte clave
-    post.viewCount = (post.viewCount || 0) + 1;
-    await post.save();
+
     
     console.log(`👁️ Vista incrementada para post ${post._id}: ${post.viewCount} vistas`);
     
