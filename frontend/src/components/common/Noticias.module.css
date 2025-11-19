@@ -83,6 +83,77 @@
 .comingSoon p {
   color: #64748b;
 }
+.newsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  margin-bottom: 50px;
+}
+
+/* NUEVO: Estilo del enlace que envuelve la tarjeta */
+.newsCardLink {
+  text-decoration: none; /* Quita el subrayado del enlace */
+  color: inherit; /* Hereda el color de texto */
+  display: block; 
+  height: 100%;
+}
+
+.newsCard {
+  background: #f8fafc;
+  padding: 25px;
+  border-radius: 15px;
+  border-left: 4px solid #4f46e5;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  height: 100%; 
+  display: flex;
+  flex-direction: column;
+}
+
+/* Efecto Hover para toda la tarjeta */
+.newsCardLink:hover .newsCard {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  background: #fff;
+  cursor: pointer;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between; /* Para separar la fecha y la fuente */
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.newsDate {
+  background: #4f46e5;
+  color: white;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  display: inline-block;
+}
+
+/* NUEVO: Estilo para la Fuente (BioBio, SoyChile, etc.) */
+.newsSource {
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.newsTitle {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.newsContent {
+  color: #666;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
 
 /* Responsive */
 @media (max-width: 768px) {

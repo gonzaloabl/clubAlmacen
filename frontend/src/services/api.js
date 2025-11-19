@@ -135,6 +135,29 @@ export const categoryAPI = {
   },
 };
 
+
+// --- NUEVA FUNCIÓN PARA NOTICIAS (CORREGIDA) ---
+export const getNews = async (filters = {}) => {
+  // 1. Construir query params (similar a postAPI.getAll)
+  const queryParams = new URLSearchParams();
+  
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) queryParams.append(key, value);
+  });
+  
+  // 2. Realizar la petición con fetch y el URL construido
+  const response = await fetch(`${API_URL}/news?${queryParams}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      // No necesita token de autenticación
+    },
+  });
+  
+  // 3. Manejar la respuesta
+  // La respuesta JSON del backend es: { news: [...] }
+  return handleResponse(response);
+};
+
 // API de publicaciones
 export const postAPI = {
   getAll: async (filters = {}) => {

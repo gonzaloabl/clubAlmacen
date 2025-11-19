@@ -6,6 +6,7 @@ console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '✅ Exi
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import cron from 'node-cron';                 // Importamos node-cron
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
@@ -16,6 +17,9 @@ import googleAuthRoutes from './routes/googleAuthRoutes.js';
 import passport, { configurePassport } from './config/passport.js';
 import adminRoutes from './routes/adminRoutes.js';
 import googleCompleteRoutes from './routes/googleCompleteRoutes.js';
+import newsRoutes from './routes/newsRoutes.js'; // Importamos la nueva ruta
+import { fetchAndSaveNews } from './scripts/fetchNews.js'; // Importamos la función del script
+
 
 
 
@@ -55,6 +59,20 @@ app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes); 
 app.use('/api/posts', postRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/news', newsRoutes);
+
+
+// --- TAREA PROGRAMADA (CRON JOB) ---
+// Se ejecutará "cada 30 minutos"
+cron.schedule('*/30 * * * *', () => {
+  console.log('EJECUTANDO TAREA PROGRAMADA: Buscando noticias RSS...');
+  
+  // Aseguramos que la ejecución no detenga el servidor en caso de error
+  fetchAndSaveNews().catch(err => {
+    console.error('Error en la tarea programada de noticias:', err);
+  });
+});
+
 
 app.get('/api/ping', (req, res) => {
   res.json({ message: '🐶 ¡Backend activo, mi perro loco!' });
@@ -89,6 +107,7 @@ app.use('*', (req, res) => {
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor backend en http://localhost:${PORT}`);
+  fetchAndSaveNews();
 });
 
 console.log('✅ Ruta /api/categories registrada');
