@@ -77,6 +77,14 @@ export const authorize = (...roles) => {
     next();
   };
 };
+export const requireSuperAdmin = (req, res, next) => {
+  // Verificamos si es admin Y si su sub-rol es superadmin
+  if (req.user && req.user.role === 'admin' && req.user.adminRole === 'superadmin') {
+    next();
+  } else {
+    res.status(403).json({ message: "⛔ Acceso denegado: Se requiere nivel Superadmin" });
+  }
+};
 
 // 🆕 MIDDLEWARES COMBINADOS PARA USO COMÚN
 export const requireAdmin = [protect, authorize('admin')];

@@ -1,161 +1,124 @@
+import { useState, useEffect } from 'react'; // 1. Importar Hooks
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';  // ✅ CORREGIDO
-import styles from './LandingPage.module.css';  // ✅ IMPORTADO CSS Module
+import { useAuth } from '../../hooks/useAuth';
+import { postAPI } from '../../services/api'; // 2. Importar API
+import { formatRelativeTime } from '../../utils/helpers'; // 3. Importar helper de tiempo
+import styles from './LandingPage.module.css';
 
 export function LandingPage() {
   const { user } = useAuth();
+  
+  // Estado para guardar los posts reales
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar posts al montar el componente
+  useEffect(() => {
+    const fetchRecentPosts = async () => {
+      try {
+        // Pedimos solo 3 posts recientes
+        const data = await postAPI.getAll({ limit: 3 });
+        setRecentPosts(data.posts || []);
+      } catch (error) {
+        console.error("Error cargando actividad reciente:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecentPosts();
+  }, []);
 
   const features = [
-    {
-      icon: "💬",
-      title: "Discusiones Activas",
-      description: "Participa en conversaciones vibrantes sobre tus temas favoritos con una comunidad activa y amigable."
-    },
-    {
-      icon: "👥",
-      title: "Comunidad Unida",
-      description: "Conecta con personas que comparten tus intereses y pasiones en un ambiente acogedor."
-    },
-    {
-      icon: "🚀",
-      title: "Crecimiento Personal",
-      description: "Aprende, comparte conocimientos y crece junto a otros miembros de la comunidad."
-    },
-    {
-      icon: "🔒",
-      title: "Espacio Seguro",
-      description: "Un ambiente respetuoso donde todos pueden expresarse libremente y sentirse cómodos."
-    }
-  ];
-
-  const recentActivities = [
-    {
-      content: "¡Acabamos de alcanzar los 1000 miembros en nuestra comunidad! 🎉",
-      author: "Admin",
-      time: "Hace 2 horas"
-    },
-    {
-      content: "Nuevo debate: ¿Cuáles son tus hobbies favoritos para el fin de semana?",
-      author: "María",
-      time: "Hace 5 horas"
-    },
-    {
-      content: "Bienvenid@s a los nuevos miembros que se unieron esta semana 👋",
-      author: "Moderador",
-      time: "Hace 1 día"
-    }
+    { title: "Foro Comunitario", icon: "💬", desc: "Resuelve dudas y debate con colegas.", link: "/forum" },
+    { title: "Noticias del Rubro", icon: "📰", desc: "Mantente al día con normativas y precios.", link: "/noticias" },
+    { title: "Proveedores", icon: "🚚", desc: "Encuentra distribuidores confiables.", link: "/directorio" },
+    { title: "Alquiler de Espacios", icon: "🏠", desc: "Busca u ofrece locales y bodegas.", link: "/login" },
   ];
 
   return (
     <div className={styles.container}>
       
-      <main className={styles.main}>
-        {/* Hero Section */}
-        <section className={styles.hero}>
-          <div className={styles.heroIcon}>🏪</div>
-          <h1 className={styles.heroTitle}>
-            Bienvenido a tu comunidad
-          </h1>
-          <p className={styles.heroSubtitle}>
-            Un espacio cálido para compartir ideas, hacer amigos y crecer juntos. 
-            Donde cada voz importa y cada miembro es valorado.
-          </p>
+      {/* 1. HERO */}
+      <section className={styles.hero}>
+        <div className={styles.heroContent}>
+          <div className={styles.heroText}>
+            <h1 className={styles.heroTitle}>El punto de encuentro para almaceneros</h1>
+            <p className={styles.heroSubtitle}>
+              Únete a Club Almacén para conectar, aprender y hacer crecer tu negocio. 
+              Una comunidad hecha por y para locatarios.
+            </p>
+            <div className={styles.heroButtons}>
+              {user ? (
+                <Link to="/dashboard" className={styles.btnPrimary}>Ir a mi Panel ➝</Link>
+              ) : (
+                <>
+                  <Link to="/login" className={styles.btnPrimary}>Unirse Ahora</Link>
+                  <Link to="/noticias" className={styles.btnSecondary}>Ver Noticias</Link>
+                </>
+              )}
+            </div>
+          </div>
           
-          <div className={styles.ctaButtons}>
-            {user ? (
-              <Link to="/forum" className={styles.primaryButton}>
-                🏠 Ir al Foro
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className={styles.primaryButton}>
-                  🚀 Unirse a la Comunidad
-                </Link>
-                <Link to="/forum" className={styles.secondaryButton}>
-                  👀 Explorar Como Invitado
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Community Stats */}
-          <div className={styles.communityStats}>
-            <div className={styles.stat}>
-              <span className={styles.statNumber}>1.2K+</span>
-              <span className={styles.statLabel}>Miembros</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statNumber}>458</span>
-              <span className={styles.statLabel}>Discusiones</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statNumber}>2.3K</span>
-              <span className={styles.statLabel}>Mensajes</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statNumber}>24/7</span>
-              <span className={styles.statLabel}>Activo</span>
+          <div className={styles.heroVisual}>
+            <div className={styles.heroImagePlaceholder}>
+              Imagen Comunidad
             </div>
           </div>
-        </section>
-
-        {/* Features Section */}
-        <section className={styles.features}>
-          <h2 className={styles.sectionTitle}>¿Por qué unirte a nuestra comunidad?</h2>
-          <p className={styles.sectionSubtitle}>
-            Descubre todo lo que hace especial a nuestro foro comunitario
-          </p>
-          
-          <div className={styles.featuresGrid}>
-            {features.map((feature, index) => (
-              <div key={index} className={styles.featureCard}>
-                <div className={styles.featureIcon}>{feature.icon}</div>
-                <h3 className={styles.featureTitle}>{feature.title}</h3>
-                <p className={styles.featureDescription}>{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Recent Activity */}
-        <section className={styles.recentActivity}>
-          <h3 className={styles.activityTitle}>Actividad Reciente</h3>
-          <div className={styles.activityGrid}>
-            {recentActivities.map((activity, index) => (
-              <div key={index} className={styles.activityCard}>
-                <p className={styles.activityContent}>{activity.content}</p>
-                <div className={styles.activityMeta}>
-                  <span>Por: {activity.author}</span>
-                  <span>{activity.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Final CTA */}
-        <div style={{ textAlign: 'center', marginTop: '60px' }}>
-          <h3 style={{ fontSize: '2rem', marginBottom: '20px' }}>
-            {user ? '¿Listo para participar?' : '¿Qué esperas para unirte?'}
-          </h3>
-          {user ? (
-            <Link to="/forum/create" className={styles.primaryButton}>
-              ✏️ Empezar una Discusión
-            </Link>
-          ) : (
-            <Link to="/login" className={styles.primaryButton}>
-              🎉 Unirme Ahora
-            </Link>
-          )}
         </div>
+      </section>
 
-        {/* Footer */}
-        <footer className={styles.footer}>
-          <p>© 2024 Club Almacen - Foro Comunitario. Hecho con ❤️ para la comunidad.</p>
-        </footer>
-      </main>
+      {/* 2. ACCESOS DIRECTOS */}
+      <section className={styles.featuresSection}>
+        <div className={styles.featuresGrid}>
+          {features.map((item, index) => (
+            <Link key={index} to={item.link} className={styles.featureCard}>
+              <span className={styles.featureIcon}>{item.icon}</span>
+              <h3 className={styles.featureTitle}>{item.title}</h3>
+              <p className={styles.featureDesc}>{item.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* 3. ACTIVIDAD RECIENTE (REAL) */}
+      <section className={styles.activitySection}>
+        <div className={styles.activityContainer}>
+          <h2 className={styles.sectionTitle}>Conversaciones Activas</h2>
+          
+          <div className={styles.discussionList}>
+             {loading ? (
+               <p style={{textAlign:'center', color:'var(--text-muted)'}}>Cargando discusiones...</p>
+             ) : recentPosts.length === 0 ? (
+               <p style={{textAlign:'center', color:'var(--text-muted)'}}>No hay conversaciones activas aún.</p>
+             ) : (
+               recentPosts.map(post => (
+                 <Link 
+                    key={post._id} 
+                    to={`/forum/post/${post._id}`} 
+                    className={styles.discussionRow}
+                    style={{textDecoration: 'none', color: 'inherit'}} // Asegurar que el link no se vea azul
+                 >
+                    <div className={styles.avatar}>
+                      {post.author?.name?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                    <div className={styles.topicInfo}>
+                       <h4 className={styles.topicTitle}>{post.title}</h4>
+                       <div className={styles.topicMeta}>
+                         {post.author?.name || 'Usuario'} • {formatRelativeTime(post.createdAt)} • en {post.category?.name || 'General'}
+                       </div>
+                    </div>
+                 </Link>
+               ))
+             )}
+          </div>
+          
+          <div style={{textAlign: 'center', marginTop: '30px'}}>
+             <Link to="/forum" style={{color: 'var(--accent)', fontWeight: 'bold'}}>Ver todas las discusiones ➝</Link>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
-
-// ✅ ELIMINADO: Todo el objeto styles y los hovers del final

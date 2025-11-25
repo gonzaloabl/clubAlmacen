@@ -95,7 +95,8 @@ export const AuthProvider = ({ children }) => {
         _id: data._id, 
         name: data.name, 
         email: data.email,
-        role: data.role 
+        role: data.role,
+        adminRole: data.adminRole
       });
       return { success: true };
     } catch (err) {
@@ -129,6 +130,7 @@ export const AuthProvider = ({ children }) => {
         name: data.name, 
         email: data.email,
         role: data.role,
+        adminRole: data.adminRole,
         oauthProvider: 'local',
         registrationComplete: true
       });

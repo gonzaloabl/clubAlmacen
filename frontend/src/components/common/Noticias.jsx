@@ -10,16 +10,11 @@ export function Noticias() {
     const fetchNoticias = async () => {
       try {
         setLoading(true);
-        // Llamamos al nuevo endpoint de noticias. 
-        // Solicitamos 12 artículos ordenados por fecha de publicación (la del RSS)
         const response = await getNews({
           limit: 12, 
           sort: '-publicationDate'
         });
-        
-        // Asumimos que la respuesta trae el array en 'response.data.news'
-        const newsData = response.news || [];
-        setNoticias(newsData);
+        setNoticias(response.news || []);
       } catch (error) {
         console.error("Error al cargar noticias:", error);
       } finally {
@@ -30,25 +25,26 @@ export function Noticias() {
     fetchNoticias();
   }, []);
 
-  // Función auxiliar para formatear la fecha
   const formatDate = (dateString) => {
-    if (!dateString) return 'Reciente';
-    const date = new Date(dateString);
-    // Formato: 18 Nov
-    return new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short' }).format(date);
+    if (!dateString) return '';
+    return new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(dateString));
   };
 
   return (
     <div className={styles.container}>
-      <div className={styles.content}>
-        <h1 className={styles.title}>📰 Últimas Noticias</h1>
+      
+      {/* HEADER */}
+      <div className={styles.header}>
+        <h1 className={styles.title}>Actualidad Regional</h1>
         <p className={styles.subtitle}>
-          Mantente informado con la actualidad regional y nacional
+          Mantente informado con las últimas novedades, normativas y eventos del rubro almacenero.
         </p>
-        
+      </div>
+
+      <div className={styles.content}>
         {loading ? (
           <div className={styles.loadingContainer}>
-            <p>Cargando noticias...</p>
+            <p>⏳ Cargando noticias...</p>
           </div>
         ) : (
           <div className={styles.newsGrid}>
@@ -59,35 +55,45 @@ export function Noticias() {
                   href={noticia.link} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className={styles.newsCardLink} // Clase para que la card sea el link
+                  className={styles.newsCardLink}
                 >
                   <div className={styles.newsCard}>
                     
-                    <div className={styles.cardHeader}>
-                      <span className={styles.newsDate}>
-                        {formatDate(noticia.publicationDate)}
-                      </span>
-                      {/* Fuente de la noticia (ej: BioBioChile) */}
-                      {noticia.source && (
-                        <span className={styles.newsSource}>{noticia.source}</span>
-                      )}
+                    {/* IMAGEN (O Placeholder si no hay) */}
+                    <div className={styles.imageWrapper}>
+                        {/* Aquí podrías poner <img src={noticia.image} ... /> si tu RSS tuviera imágenes */}
+                        <div className={styles.placeholder}>
+                           📰
+                        </div>
                     </div>
-                    
-                    <h3 className={styles.newsTitle}>{noticia.title}</h3>
-                    
-                    <p className={styles.newsContent}>
-                      {noticia.content 
-                        ? noticia.content.substring(0, 120) + '...' // Snippet corto
-                        : 'Ver sitio original para más detalles.'}
-                    </p>
+
+                    {/* CUERPO */}
+                    <div className={styles.cardBody}>
+                      <div className={styles.cardMeta}>
+                        <span className={styles.sourceBadge}>{noticia.source || 'Noticia'}</span>
+                        <span className={styles.date}>{formatDate(noticia.publicationDate)}</span>
+                      </div>
+                      
+                      <h3 className={styles.newsTitle}>{noticia.title}</h3>
+                      
+                      <p className={styles.newsContent}>
+                        {noticia.content 
+                          ? noticia.content.replace(/<[^>]*>?/gm, '').substring(0, 120) + '...' // Limpiar HTML básico y cortar
+                          : 'Haz clic para leer el artículo completo en la fuente original.'}
+                      </p>
+
+                      <div className={styles.cardFooter}>
+                         <span className={styles.readMore}>Leer artículo completado →</span>
+                      </div>
+                    </div>
+
                   </div>
                 </a>
               ))
             ) : (
-              // Si no hay noticias, muestra el mensaje de "coming soon"
               <div className={styles.comingSoon}>
-                <h3>🚧 Sin noticias por ahora</h3>
-                <p>Estamos recopilando la información más reciente de los medios regionales.</p>
+                <h3>📭 Sin noticias recientes</h3>
+                <p>Estamos recopilando información actualizada para ti.</p>
               </div>
             )}
           </div>

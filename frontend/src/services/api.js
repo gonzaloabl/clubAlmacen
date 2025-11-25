@@ -50,6 +50,25 @@ export const userAPI = {
     });
     return handleResponse(response);
   },
+  updateProfile: async (userData) => {
+    const response = await fetch(`${API_URL}/users/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(userData),
+    });
+    return handleResponse(response);
+  },
+  getProviders: async () => {
+    const response = await fetch(`${API_URL}/users/public/providers`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return handleResponse(response);
+  },
 };
 
 // API de carrito

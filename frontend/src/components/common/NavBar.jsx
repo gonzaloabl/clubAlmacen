@@ -1,11 +1,11 @@
-// frontend/src/components/common/NavBar.jsx
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useRole } from '../../hooks/useRole'; // 🆕 Importar el hook de roles
+import { useRole } from '../../hooks/useRole';
+import { AccessibilityControls } from './AccessibilityControls'; // 1. Importar controles
 
 export function NavBar() {
   const { user, logout } = useAuth();
-  const { currentRole } = useRole(); // 🆕 Obtener el rol actual
+  const { currentRole } = useRole();
 
   const handleLogout = () => {
     logout();
@@ -14,23 +14,21 @@ export function NavBar() {
   return (
     <nav style={styles.navbar}>
       <div style={styles.logo}>
-        <Link to="/" style={styles.logoLink}>Club Almacén</Link>
+        <Link to="/" style={styles.logoLink}>🏪 Club Almacén</Link>
       </div>
       
       <div style={styles.menu}>
         {/* Enlaces públicos */}
         <Link to="/" style={styles.menuItem}>Inicio</Link>
         <Link to="/noticias" style={styles.menuItem}>Noticias</Link>
+        <Link to="/forum" style={styles.menuItem}>Foro</Link>
+        <Link to="/directorio" style={styles.menuItem}>Proveedores</Link>
+        {/* 2. INSERTAR CONTROLES DE ACCESIBILIDAD AQUÍ */}
+        <AccessibilityControls />
         
-        {/* Enlaces protegidos */}
-        {user && (
-          <Link to="/forum" style={styles.menuItem}>Foro</Link>
-        )}
-        
-        {/* 🆕 MENÚ DE USUARIO */}
+        {/* Menú de Usuario */}
         {user ? (
           <div style={styles.userMenu}>
-            {/* 🆕 ENLACE AL DASHBOARD DESDE EL PERFIL */}
             <Link to="/dashboard" style={styles.profileLink}>
               <div style={styles.userInfo}>
                 <span style={styles.userName}>{user.name}</span>
@@ -39,12 +37,12 @@ export function NavBar() {
             </Link>
             
             <button onClick={handleLogout} style={styles.logoutButton}>
-              Cerrar Sesión
+              Salir
             </button>
           </div>
         ) : (
           <Link to="/login" style={styles.loginButton}>
-            Iniciar Sesión
+            Ingresar
           </Link>
         )}
       </div>
@@ -52,6 +50,7 @@ export function NavBar() {
   );
 }
 
+// 3. ACTUALIZAR ESTILOS PARA USAR VARIABLES CSS (THEMING)
 const styles = {
   navbar: {
     position: 'fixed',
@@ -62,30 +61,32 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '10px 20px',
-    background: '#333',
-    color: 'white',
+    background: 'var(--bg-sidebar)', // ✅ Usar variable del tema
+    color: 'var(--text-inverse)',    // ✅ Usar variable del tema
     zIndex: 1000,
-    boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    borderBottom: '1px solid var(--border)'
   },
   logo: {
     fontSize: '24px',
     fontWeight: 'bold'
   },
   logoLink: {
-    color: 'white',
+    color: 'var(--text-inverse)', // ✅ Color dinámico
     textDecoration: 'none'
   },
   menu: {
     display: 'flex',
     alignItems: 'center',
-    gap: '25px'
+    gap: '15px' // Reducido un poco para que quepa todo
   },
   menuItem: {
-    color: 'white',
+    color: 'var(--text-inverse)', // ✅ Color dinámico
     textDecoration: 'none',
     padding: '8px 12px',
     borderRadius: '5px',
-    transition: 'background 0.3s ease'
+    transition: 'background 0.3s ease',
+    fontSize: '0.95rem'
   },
   userMenu: {
     display: 'flex',
@@ -95,13 +96,14 @@ const styles = {
   profileLink: {
     color: 'white',
     textDecoration: 'none',
-    padding: '8px 15px',
-    background: '#8d8d8d',
+    padding: '5px 15px',
+    background: 'rgba(255,255,255,0.1)', // Transparente para adaptarse al tema
     borderRadius: '20px',
     transition: 'background 0.3s ease',
     display: 'flex',
     alignItems: 'center',
-    gap: '8px'
+    gap: '8px',
+    border: '1px solid rgba(255,255,255,0.2)'
   },
   userInfo: {
     display: 'flex',
@@ -110,28 +112,32 @@ const styles = {
   },
   userName: {
     fontWeight: 'bold',
-    fontSize: '14px'
+    fontSize: '13px'
   },
   userRole: {
-    fontSize: '11px',
+    fontSize: '10px',
     opacity: '0.8',
-    fontStyle: 'italic'
+    textTransform: 'uppercase'
   },
   logoutButton: {
-    background: '#dc3545',
-    color: 'white',
-    border: 'none',
-    padding: '8px 15px',
+    background: 'transparent',
+    color: 'var(--danger)', // ✅ Rojo dinámico
+    border: '1px solid var(--danger)',
+    padding: '6px 12px',
     borderRadius: '5px',
     cursor: 'pointer',
-    transition: 'background 0.3s ease'
+    transition: 'all 0.3s ease',
+    fontWeight: 'bold',
+    fontSize: '0.9rem'
   },
   loginButton: {
-    background: '#8d8d8d',
+    background: 'var(--accent)', // ✅ Azul dinámico
     color: 'white',
-    padding: '8px 15px',
+    padding: '8px 20px',
     borderRadius: '5px',
     textDecoration: 'none',
-    transition: 'background 0.3s ease'
+    fontWeight: 'bold',
+    transition: 'transform 0.2s ease',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
   }
 };

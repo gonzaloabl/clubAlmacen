@@ -1,235 +1,162 @@
-import { useLocatario } from '../../hooks/useLocatario';
 import { useState, useEffect } from 'react';
+import { useLocatario } from '../../hooks/useLocatario';
+import { useAuth } from '../../hooks/useAuth';
+import { DashboardLayout } from '../layouts/DashboardLayout';
+import {ProfileSettings} from './ProfileSettings'
 
 export function LocatarioDashboard() {
-  const { isLocatario, espacios, reservas, loadLocatarioData, hacerReserva } = useLocatario();
+  const { isLocatario, reservas, espacios, loadLocatarioData, hacerReserva } = useLocatario();
+  const { user } = useAuth();
+  
+  // Estado para la navegación interna (SPA)
+  const [activeTab, setActiveTab] = useState('overview');
+  // Estado para el formulario de reserva simple
   const [fechaReserva, setFechaReserva] = useState('');
-  const [espacioSeleccionado, setEspacioSeleccionado] = useState(null);
 
   useEffect(() => {
     loadLocatarioData();
   }, []);
 
-  if (!isLocatario) {
-    return (
-      <div style={styles.error}>
-        <h2>⛔ Acceso Denegado</h2>
-        <p>No tienes permisos de locatario para ver este panel.</p>
-      </div>
-    );
-  }
+  if (!isLocatario) return null;
 
-  const handleReserva = (espacioId) => {
-    if (!fechaReserva) {
-      alert('Por favor selecciona una fecha');
-      return;
-    }
+  // 1. Definimos el Menú Lateral del Locatario
+  const sidebarItems = [
+    { label: 'Mi Resumen', icon: '🏠', onClick: () => setActiveTab('overview'), isActive: activeTab === 'overview' },
+    { label: 'Mi Perfil', icon: '⚙️', onClick: () => setActiveTab('profile'), isActive: activeTab === 'profile' },
+    { label: 'Mis Reservas', icon: '📅', onClick: () => setActiveTab('reservas'), isActive: activeTab === 'reservas' },
+    { label: 'Buscar Espacios', icon: '🔍', onClick: () => setActiveTab('buscar'), isActive: activeTab === 'buscar' },
+    { label: 'Comunidad', icon: '💬', path: '/forum' }, // Enlace directo al foro
+  ];
 
-    const success = hacerReserva(espacioId, fechaReserva);
-    if (success) {
-      alert('¡Reserva realizada con éxito!');
-      setFechaReserva('');
-      setEspacioSeleccionado(null);
-    } else {
-      alert('No se pudo realizar la reserva. El espacio no está disponible.');
+  const handleReservar = (id) => {
+    if(!fechaReserva) return alert('Selecciona una fecha');
+    const exito = hacerReserva(id, fechaReserva);
+    if(exito) {
+        alert('¡Reserva creada!');
+        setFechaReserva('');
+        setActiveTab('reservas'); // Llevar al usuario a ver sus reservas
     }
   };
 
   return (
-    <div style={styles.container}>
-      <h1>🏠 Panel de Locatario</h1>
+    <DashboardLayout 
+      title="Panel de Locatario"
+      subtitle={`Hola, ${user?.name}. Gestiona tus alquileres.`}
+      sidebarItems={sidebarItems}
+    >
+      
+      {/* --- VISTA GENERAL --- */}
+      {activeTab === 'overview' && (
+        <div>
+          <h2 style={{color: 'var(--text-main)'}}>Resumen de Actividad</h2>
+          
+          {/* Stats Cards */}
+          <div style={styles.statsGrid}>
+            <div style={styles.card}>
+                <span style={{fontSize: '2rem'}}>📅</span>
+                <h3>{reservas.length}</h3>
+                <p>Reservas Activas</p>
+            </div>
+            <div style={styles.card}>
+                <span style={{fontSize: '2rem'}}>💬</span>
+                <h3>0</h3>
+                <p>Msjes en Foro</p>
+            </div>
+          </div>
 
-      <div style={styles.grid}>
-        {/* Espacios Disponibles */}
-        <div style={styles.section}>
-          <h2>📍 Espacios Disponibles</h2>
-          <div style={styles.espaciosList}>
-            {espacios.map(espacio => (
-              <div key={espacio.id} style={styles.espacioCard}>
-                <h3>{espacio.nombre}</h3>
-                <p>Precio: ${espacio.precio}/día</p>
-                <p>Estado: 
-                  <span style={{
-                    color: espacio.disponible ? '#198754' : '#dc3545',
-                    fontWeight: 'bold'
-                  }}>
-                    {espacio.disponible ? ' ✅ Disponible' : ' ❌ No disponible'}
-                  </span>
-                </p>
-                
-                {espacio.disponible && (
-                  <div style={styles.reservaForm}>
-                    <input
-                      type="date"
-                      value={fechaReserva}
-                      onChange={(e) => setFechaReserva(e.target.value)}
-                      style={styles.input}
-                    />
-                    <button 
-                      onClick={() => handleReserva(espacio.id)}
-                      style={styles.reservaButton}
-                    >
-                      🗓️ Reservar
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
+          {/* Notificación estilo Foro */}
+          <div style={styles.noticeBox}>
+             <strong>📢 Aviso de Administración:</strong> Recuerda actualizar datos de contacto.
           </div>
         </div>
+      )}
 
-        {/* Mis Reservas */}
-        <div style={styles.section}>
-          <h2>📅 Mis Reservas</h2>
+      {/* 3️⃣ RENDERIZAR EL COMPONENTE CUANDO LA PESTAÑA ESTÁ ACTIVA */}
+      {activeTab === 'profile' && (
+        <ProfileSettings />
+      )}
+
+      {/* --- MIS RESERVAS --- */}
+      {activeTab === 'reservas' && (
+        <div>
+          <h2 style={{color: 'var(--text-main)', marginBottom:'20px'}}>Mis Reservas</h2>
           {reservas.length === 0 ? (
-            <p style={styles.noReservas}>No tienes reservas activas</p>
+            <p style={{color: 'var(--text-muted)'}}>No tienes reservas activas.</p>
           ) : (
-            <div style={styles.reservasList}>
-              {reservas.map(reserva => (
-                <div key={reserva.id} style={styles.reservaCard}>
-                  <h4>{reserva.espacio}</h4>
-                  <p>Fecha: {reserva.fecha}</p>
-                  <p>Total: ${reserva.total}</p>
-                  <div style={styles.reservaActions}>
-                    <button style={styles.smallButton}>👀 Ver Detalles</button>
-                    <button style={styles.smallButton}>📧 Contactar</button>
-                  </div>
-                </div>
-              ))}
+            <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                {reservas.map(res => (
+                    <div key={res.id} style={styles.rowCard}>
+                        <div style={styles.dateBadge}>
+                            <span style={{fontWeight:'bold'}}>{new Date(res.fecha).getDate()}</span>
+                            <small>{new Date(res.fecha).toLocaleString('es-CL', { month: 'short' })}</small>
+                        </div>
+                        <div style={{flex: 1}}>
+                            <h4 style={{margin: 0, color: 'var(--text-main)'}}>{res.espacio}</h4>
+                            <small style={{color: 'var(--text-muted)'}}>Confirmada • ${res.total}</small>
+                        </div>
+                        <button style={styles.btnSmall}>Ver Detalle</button>
+                    </div>
+                ))}
             </div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Información Rápida */}
-      <div style={styles.quickInfo}>
-        <h2>ℹ️ Información Rápida</h2>
-        <div style={styles.infoGrid}>
-          <div style={styles.infoCard}>
-            <h3>💰 Precios</h3>
-            <ul>
-              <li>Oficinas: $300 - $800/día</li>
-              <li>Salas de reuniones: $200 - $500/día</li>
-              <li>Espacios coworking: $150 - $300/día</li>
-            </ul>
-          </div>
-          <div style={styles.infoCard}>
-            <h3>📞 Contacto</h3>
-            <p>Teléfono: +56 2 1234 5678</p>
-            <p>Email: contacto@clubalmacen.cl</p>
-            <p>Horario: Lunes a Viernes 8:00 - 20:00</p>
-          </div>
-          <div style={styles.infoCard}>
-            <h3>🔧 Servicios Incluidos</h3>
-            <ul>
-              <li>WiFi de alta velocidad</li>
-              <li>Impresión básica</li>
-              <li>Recepción de paquetes</li>
-              <li>Café y agua</li>
-            </ul>
+      {/* --- BUSCAR ESPACIOS --- */}
+      {activeTab === 'buscar' && (
+        <div>
+          <h2 style={{color: 'var(--text-main)', marginBottom:'20px'}}>Espacios Disponibles</h2>
+          <div style={styles.gridEspacios}>
+            {espacios.map(espacio => (
+                <div key={espacio.id} style={styles.espacioCard}>
+                    <div style={{height: '100px', background: '#ccc', borderRadius: '5px 5px 0 0', display:'flex', alignItems:'center', justifyContent:'center', color:'#666'}}>
+                        Imagen Espacio
+                    </div>
+                    <div style={{padding: '15px'}}>
+                        <h4 style={{margin: '0 0 5px 0', color: 'var(--text-main)'}}>{espacio.nombre}</h4>
+                        <p style={{color: 'var(--accent)', fontWeight: 'bold'}}>${espacio.precio} / día</p>
+                        
+                        {espacio.disponible ? (
+                            <div style={{marginTop: '10px'}}>
+                                <input 
+                                    type="date" 
+                                    style={styles.inputDate}
+                                    onChange={(e) => setFechaReserva(e.target.value)}
+                                />
+                                <button 
+                                    onClick={() => handleReservar(espacio.id)}
+                                    style={styles.btnPrimary}
+                                >
+                                    Reservar
+                                </button>
+                            </div>
+                        ) : (
+                            <span style={{color: 'var(--danger)', fontSize: '0.9rem'}}>🚫 No disponible</span>
+                        )}
+                    </div>
+                </div>
+            ))}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+
+    </DashboardLayout>
   );
 }
 
 const styles = {
-  container: {
-    padding: '20px',
-    maxWidth: '1200px',
-    margin: '0 auto'
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '30px',
-    marginBottom: '30px'
-  },
-  section: {
-    background: 'white',
-    padding: '25px',
-    borderRadius: '10px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-  },
-  espaciosList: {
-    display: 'grid',
-    gap: '20px'
-  },
-  espacioCard: {
-    padding: '20px',
-    border: '1px solid #dee2e6',
-    borderRadius: '8px',
-    background: '#f8f9fa'
-  },
-  reservaForm: {
-    marginTop: '15px',
-    display: 'flex',
-    gap: '10px',
-    alignItems: 'center'
-  },
-  input: {
-    padding: '8px',
-    border: '1px solid #ccc',
-    borderRadius: '5px'
-  },
-  reservaButton: {
-    padding: '8px 15px',
-    background: '#198754',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer'
-  },
-  reservasList: {
-    display: 'grid',
-    gap: '15px'
-  },
-  reservaCard: {
-    padding: '15px',
-    border: '1px solid #dee2e6',
-    borderRadius: '8px',
-    background: '#e7f3ff'
-  },
-  reservaActions: {
-    display: 'flex',
-    gap: '10px',
-    marginTop: '10px'
-  },
-  smallButton: {
-    padding: '5px 10px',
-    background: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '3px',
-    cursor: 'pointer',
-    fontSize: '12px'
-  },
-  noReservas: {
-    textAlign: 'center',
-    color: '#6c757d',
-    fontStyle: 'italic',
-    padding: '20px'
-  },
-  quickInfo: {
-    background: 'white',
-    padding: '25px',
-    borderRadius: '10px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-  },
-  infoGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '20px'
-  },
-  infoCard: {
-    padding: '20px',
-    background: '#f8f9fa',
-    borderRadius: '8px'
-  },
-  error: {
-    textAlign: 'center',
-    padding: '50px',
-    color: '#dc3545'
-  }
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px', marginBottom: '30px' },
+  card: { padding: '20px', border: '1px solid var(--border)', borderRadius: '10px', textAlign: 'center', background: 'var(--bg-body)' },
+  noticeBox: { padding: '15px', background: 'rgba(52, 152, 219, 0.1)', borderLeft: '4px solid var(--accent)', color: 'var(--text-main)', borderRadius: '4px' },
+  
+  // Estilos de lista de reservas
+  rowCard: { display: 'flex', alignItems: 'center', gap: '15px', padding: '15px', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border)' },
+  dateBadge: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'var(--bg-card)', padding: '5px 10px', borderRadius: '5px', border: '1px solid var(--border)', minWidth: '50px' },
+  btnSmall: { padding: '5px 10px', background: 'var(--bg-card)', border: '1px solid var(--border)', cursor: 'pointer', borderRadius: '4px', color: 'var(--text-muted)' },
+  
+  // Estilos de espacios
+  gridEspacios: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' },
+  espacioCard: { border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', background: 'var(--bg-card)' },
+  inputDate: { padding: '5px', borderRadius: '4px', border: '1px solid var(--border)', marginRight: '5px', width: '110px' },
+  btnPrimary: { padding: '6px 12px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }
 };

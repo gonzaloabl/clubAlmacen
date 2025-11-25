@@ -1,232 +1,193 @@
-import { useProveedor } from '../../hooks/useProveedor';
 import { useState, useEffect } from 'react';
+import { useProveedor } from '../../hooks/useProveedor';
+import { useAuth } from '../../hooks/useAuth';
+import { DashboardLayout } from '../layouts/DashboardLayout';
+import { ProfileSettings } from './ProfileSettings';
+
 
 export function ProveedorDashboard() {
   const { isProveedor, productos, pedidos, loadProveedorData, agregarProducto } = useProveedor();
-  const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', precio: '', stock: '' });
+  const { user } = useAuth();
+  
+  // Estado para pestañas (SPA)
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  // Estado para formulario de producto
+  const [newProduct, setNewProduct] = useState({ nombre: '', precio: '', stock: '' });
 
   useEffect(() => {
     loadProveedorData();
   }, []);
 
-  if (!isProveedor) {
-    return (
-      <div style={styles.error}>
-        <h2>⛔ Acceso Denegado</h2>
-        <p>No tienes permisos de proveedor para ver este panel.</p>
-      </div>
-    );
-  }
-
-  const handleAgregarProducto = (e) => {
+  // Función para manejar el envío del formulario
+  const handleAddProduct = (e) => {
     e.preventDefault();
-    if (nuevoProducto.nombre && nuevoProducto.precio && nuevoProducto.stock) {
+    if (newProduct.nombre && newProduct.precio && newProduct.stock) {
       agregarProducto({
-        nombre: nuevoProducto.nombre,
-        precio: parseInt(nuevoProducto.precio),
-        stock: parseInt(nuevoProducto.stock)
+        nombre: newProduct.nombre,
+        precio: Number(newProduct.precio),
+        stock: Number(newProduct.stock)
       });
-      setNuevoProducto({ nombre: '', precio: '', stock: '' });
+      setNewProduct({ nombre: '', precio: '', stock: '' }); // Limpiar
+      alert('✅ Producto agregado correctamente');
     }
   };
 
+  if (!isProveedor) return null;
+
+  // 1. Menú Lateral del Proveedor
+  const sidebarItems = [
+    { label: 'Resumen Ventas', icon: '📈', onClick: () => setActiveTab('overview'), isActive: activeTab === 'overview' },
+    { label: 'Mi Perfil', icon: '⚙️', onClick: () => setActiveTab('profile'), isActive: activeTab === 'profile' },
+    { label: 'Mis Productos', icon: '📦', onClick: () => setActiveTab('products'), isActive: activeTab === 'products' },
+    { label: 'Pedidos Entrantes', icon: '🔔', onClick: () => setActiveTab('orders'), isActive: activeTab === 'orders' },
+    { label: 'Foro Proveedores', icon: '🚚', path: '/forum' },
+  ];
+
   return (
-    <div style={styles.container}>
-      <h1>🚚 Panel de Proveedor</h1>
-
-      <div style={styles.grid}>
-        {/* Gestión de Productos */}
-        <div style={styles.section}>
-          <h2>📦 Mis Productos</h2>
-          <div style={styles.productList}>
-            {productos.map(producto => (
-              <div key={producto.id} style={styles.productCard}>
-                <h4>{producto.nombre}</h4>
-                <p>Precio: ${producto.precio}</p>
-                <p>Stock: {producto.stock}</p>
-                <button style={styles.smallButton}>Editar</button>
-              </div>
-            ))}
-          </div>
-
-          {/* Formulario para agregar producto */}
-          <form onSubmit={handleAgregarProducto} style={styles.form}>
-            <h3>Agregar Nuevo Producto</h3>
-            <input
-              type="text"
-              placeholder="Nombre del producto"
-              value={nuevoProducto.nombre}
-              onChange={(e) => setNuevoProducto({...nuevoProducto, nombre: e.target.value})}
-              style={styles.input}
-            />
-            <input
-              type="number"
-              placeholder="Precio"
-              value={nuevoProducto.precio}
-              onChange={(e) => setNuevoProducto({...nuevoProducto, precio: e.target.value})}
-              style={styles.input}
-            />
-            <input
-              type="number"
-              placeholder="Stock"
-              value={nuevoProducto.stock}
-              onChange={(e) => setNuevoProducto({...nuevoProducto, stock: e.target.value})}
-              style={styles.input}
-            />
-            <button type="submit" style={styles.button}>
-              ➕ Agregar Producto
-            </button>
-          </form>
-        </div>
-
-        {/* Pedidos */}
-        <div style={styles.section}>
-          <h2>📋 Pedidos Recientes</h2>
-          <div style={styles.pedidosList}>
-            {pedidos.map(pedido => (
-              <div key={pedido.id} style={styles.pedidoCard}>
-                <h4>Pedido #{pedido.id}</h4>
-                <p>Cliente: {pedido.cliente}</p>
-                <p>Total: ${pedido.total}</p>
-                <p>Estado: 
-                  <span style={{
-                    color: pedido.estado === 'completado' ? '#198754' : '#ffc107',
-                    fontWeight: 'bold'
-                  }}>
-                    {pedido.estado}
-                  </span>
-                </p>
-                <button style={styles.smallButton}>
-                  {pedido.estado === 'pendiente' ? '✅ Completar' : '👀 Ver Detalles'}
-                </button>
-              </div>
-            ))}
+    <DashboardLayout 
+      title="Panel de Proveedor"
+      subtitle={`Hola, ${user?.name}. Gestiona tu inventario y ventas.`}
+      sidebarItems={sidebarItems}
+    >
+      
+      {/* --- VISTA GENERAL --- */}
+      {activeTab === 'overview' && (
+        <div>
+          <h2 style={{color: 'var(--text-main)'}}>Métricas de Negocio</h2>
+          
+          <div style={styles.statsGrid}>
+             <div style={styles.card}>
+                <span style={{fontSize: '2rem'}}>💵</span>
+                <h3>${pedidos.reduce((acc, curr) => acc + curr.total, 0)}</h3>
+                <p>Ventas Totales</p>
+             </div>
+             <div style={styles.card}>
+                <span style={{fontSize: '2rem'}}>📦</span>
+                <h3>{productos.length}</h3>
+                <p>Productos Activos</p>
+             </div>
+             <div style={styles.card}>
+                <span style={{fontSize: '2rem'}}>⏳</span>
+                <h3>{pedidos.filter(p => p.estado === 'pendiente').length}</h3>
+                <p>Pedidos Pendientes</p>
+             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Estadísticas */}
-      <div style={styles.stats}>
-        <h2>📊 Estadísticas</h2>
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <h3>Productos Activos</h3>
-            <p style={styles.statNumber}>{productos.length}</p>
+      {/* 3️⃣ RENDERIZAR EL COMPONENTE CUANDO LA PESTAÑA ESTÁ ACTIVA */}
+      {activeTab === 'profile' && (
+        <ProfileSettings />
+      )}
+
+      {/* --- GESTIÓN DE PRODUCTOS --- */}
+      {activeTab === 'products' && (
+        <div>
+          <h2 style={{color: 'var(--text-main)'}}>Inventario</h2>
+          
+          {/* Formulario Rápido */}
+          <div style={styles.formBox}>
+            <h4 style={{marginTop:0}}>Agregar Nuevo Item</h4>
+            <form onSubmit={handleAddProduct} style={{display:'flex', gap:'10px', flexWrap:'wrap'}}>
+                <input 
+                    type="text" placeholder="Nombre Producto" style={styles.input}
+                    value={newProduct.nombre}
+                    onChange={e => setNewProduct({...newProduct, nombre: e.target.value})}
+                />
+                <input 
+                    type="number" placeholder="Precio ($)" style={styles.input}
+                    value={newProduct.precio}
+                    onChange={e => setNewProduct({...newProduct, precio: e.target.value})}
+                />
+                <input 
+                    type="number" placeholder="Stock" style={{...styles.input, width:'80px'}}
+                    value={newProduct.stock}
+                    onChange={e => setNewProduct({...newProduct, stock: e.target.value})}
+                />
+                <button type="submit" style={styles.btnAction}>➕ Agregar</button>
+            </form>
           </div>
-          <div style={styles.statCard}>
-            <h3>Pedidos Pendientes</h3>
-            <p style={styles.statNumber}>
-              {pedidos.filter(p => p.estado === 'pendiente').length}
-            </p>
-          </div>
-          <div style={styles.statCard}>
-            <h3>Ingresos Totales</h3>
-            <p style={styles.statNumber}>
-              ${pedidos.reduce((total, pedido) => total + pedido.total, 0)}
-            </p>
+
+          {/* Lista de Productos */}
+          <div style={styles.gridProducts}>
+             {productos.map(prod => (
+                <div key={prod.id} style={styles.productCard}>
+                    <div style={{fontWeight:'bold', marginBottom:'5px'}}>{prod.nombre}</div>
+                    <div style={{color:'var(--text-muted)', fontSize:'0.9rem'}}>Stock: {prod.stock} un.</div>
+                    <div style={{color:'var(--accent)', fontWeight:'bold', marginTop:'5px'}}>${prod.precio}</div>
+                    <div style={{marginTop:'10px', display:'flex', gap:'5px'}}>
+                        <button style={styles.btnSmall}>✏️</button>
+                        <button style={styles.btnSmallDanger}>🗑️</button>
+                    </div>
+                </div>
+             ))}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* --- PEDIDOS --- */}
+      {activeTab === 'orders' && (
+        <div>
+           <h2 style={{color: 'var(--text-main)'}}>Pedidos Recientes</h2>
+           <table style={styles.table}>
+             <thead>
+                <tr>
+                    <th style={styles.th}>ID</th>
+                    <th style={styles.th}>Cliente</th>
+                    <th style={styles.th}>Total</th>
+                    <th style={styles.th}>Estado</th>
+                    <th style={styles.th}>Acción</th>
+                </tr>
+             </thead>
+             <tbody>
+                {pedidos.map(pedido => (
+                    <tr key={pedido.id}>
+                        <td style={styles.td}>#{pedido.id}</td>
+                        <td style={styles.td}>{pedido.cliente}</td>
+                        <td style={styles.td}>${pedido.total}</td>
+                        <td style={styles.td}>
+                            <span style={{
+                                ...styles.badge, 
+                                background: pedido.estado === 'completado' ? 'rgba(39, 174, 96, 0.1)' : 'rgba(241, 196, 15, 0.1)',
+                                color: pedido.estado === 'completado' ? 'var(--success)' : '#d35400'
+                            }}>
+                                {pedido.estado}
+                            </span>
+                        </td>
+                        <td style={styles.td}>
+                            <button style={styles.btnTable}>Ver</button>
+                        </td>
+                    </tr>
+                ))}
+             </tbody>
+           </table>
+        </div>
+      )}
+
+    </DashboardLayout>
   );
 }
 
 const styles = {
-  container: {
-    padding: '20px',
-    maxWidth: '1200px',
-    margin: '0 auto'
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '30px',
-    marginBottom: '30px'
-  },
-  section: {
-    background: 'white',
-    padding: '25px',
-    borderRadius: '10px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-  },
-  productList: {
-    display: 'grid',
-    gap: '15px',
-    marginBottom: '20px'
-  },
-  productCard: {
-    padding: '15px',
-    border: '1px solid #dee2e6',
-    borderRadius: '8px',
-    background: '#f8f9fa'
-  },
-  pedidosList: {
-    display: 'grid',
-    gap: '15px'
-  },
-  pedidoCard: {
-    padding: '15px',
-    border: '1px solid #dee2e6',
-    borderRadius: '8px',
-    background: '#f8f9fa'
-  },
-  form: {
-    marginTop: '20px',
-    padding: '20px',
-    background: '#e7f3ff',
-    borderRadius: '8px'
-  },
-  input: {
-    display: 'block',
-    width: '100%',
-    padding: '10px',
-    margin: '10px 0',
-    border: '1px solid #ccc',
-    borderRadius: '5px'
-  },
-  button: {
-    padding: '10px 20px',
-    background: '#198754',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer'
-  },
-  smallButton: {
-    padding: '5px 10px',
-    background: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '3px',
-    cursor: 'pointer',
-    fontSize: '12px'
-  },
-  stats: {
-    background: 'white',
-    padding: '25px',
-    borderRadius: '10px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '20px'
-  },
-  statCard: {
-    textAlign: 'center',
-    padding: '20px',
-    background: '#f8f9fa',
-    borderRadius: '8px'
-  },
-  statNumber: {
-    fontSize: '2em',
-    fontWeight: 'bold',
-    color: '#0d6efd',
-    margin: '10px 0'
-  },
-  error: {
-    textAlign: 'center',
-    padding: '50px',
-    color: '#dc3545'
-  }
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' },
+  card: { padding: '20px', border: '1px solid var(--border)', borderRadius: '10px', textAlign: 'center', background: 'var(--bg-body)' },
+  
+  // Formulario
+  formBox: { padding: '20px', background: 'var(--bg-body)', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--border)' },
+  input: { padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', flex: 1 },
+  btnAction: { padding: '8px 15px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' },
+
+  // Productos
+  gridProducts: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '15px' },
+  productCard: { padding: '15px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-card)' },
+  btnSmall: { padding: '5px 10px', background: '#e0e0e0', border: 'none', borderRadius: '4px', cursor: 'pointer' },
+  btnSmallDanger: { padding: '5px 10px', background: 'rgba(231, 76, 60, 0.1)', color: 'var(--danger)', border: 'none', borderRadius: '4px', cursor: 'pointer' },
+
+  // Tabla
+  table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
+  th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)', color: 'var(--text-muted)' },
+  td: { padding: '12px', borderBottom: '1px solid var(--border)', color: 'var(--text-main)' },
+  badge: { padding: '4px 8px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' },
+  btnTable: { padding: '5px 10px', background: 'var(--bg-body)', border: '1px solid var(--border)', cursor: 'pointer', borderRadius: '4px' }
 };

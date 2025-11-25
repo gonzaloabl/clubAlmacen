@@ -25,6 +25,21 @@ const userSchema = new mongoose.Schema({
     enum: ['locatario', 'proveedor', 'admin','pending'],
     default: 'locatario'
   },
+  adminRole: {
+    type: String,
+    enum: [
+      'superadmin', // El Mandante/Dueño
+      'regional',   // Admin de Zona
+      'technical',  // Soporte Técnico
+      null          // Para usuarios normales
+    ],
+    default: null
+  },
+  // 🆕 Región (Solo para Admin Regional)
+  region: {
+    type: String,
+    default: null 
+  },
   adminCreationCode: {
     type: String,
     select: false
@@ -64,7 +79,36 @@ const userSchema = new mongoose.Schema({
       type: String,
       enum: ['google', 'local'],
       default: 'local'
-  }
+  },
+  phone: { 
+    type: String, 
+    default: '' 
+  },
+  address: { 
+    type: String, 
+    default: '' 
+  },
+  businessName: { 
+    type: String, 
+    default: '' 
+  }, // Ej: "Almacén Don Pepe"
+  businessDescription: { 
+    type: String, 
+    default: '' 
+  }, // Ej: "Venta de abarrotes..."
+  website: { 
+    type: String, 
+    default: '' 
+  },
+  whatsapp: {
+     type: String,
+    default: '' 
+  },
+  avatar: { 
+    type: String, 
+    default: '' 
+  },
+  
 }, { timestamps: true });
 
 // Hash password ANTES de guardar

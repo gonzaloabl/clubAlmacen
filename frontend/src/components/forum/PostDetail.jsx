@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import {useAuth} from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 import { postAPI } from '../../services/api';
+import { formatRelativeTime } from '../../utils/helpers';
+import styles from './PostDetail.module.css';
 
 export function PostDetail() {
   const { id } = useParams();
@@ -10,447 +12,238 @@ export function PostDetail() {
   
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [commentText, setCommentText] = useState('');
-  const hasLoaded = useRef(false); // Ahora useRef está definido
+  const hasLoaded = useRef(false);
+
+  // Cargar Datos
+  const loadPostData = async () => {
+    try {
+      const [viewRes, postData] = await Promise.all([
+        postAPI.registerView(id), // Registrar vista
+        postAPI.getById(id)
+      ]);
+      setPost(postData);
+    } catch (err) {
+      console.error("Error cargando post:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadPostData = async () => {
-      // Evitar carga duplicada en desarrollo con React.StrictMode
-      if (hasLoaded.current) return;
+    if (!hasLoaded.current) {
       hasLoaded.current = true;
-
-      try {
-        console.log(`🔍 Cargando post ${id}...`);
-        
-        // Registrar vista y cargar post en paralelo para mejor performance
-        const [viewResponse, postData] = await Promise.all([
-          postAPI.registerView(id),
-          postAPI.getById(id)
-        ]);
-        
-        console.log(`✅ Post cargado: ${postData.title}, Vistas: ${postData.viewCount}`);
-        setPost(postData);
-      } catch (err) {
-        console.error('❌ Error cargando post:', err);
-        setError('Error al cargar la publicación');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPostData();
+      loadPostData();
+    }
   }, [id]);
 
-
-  // Resto del código permanece igual...
+  // --- 🟢 1. FUNCIONALIDAD: DAR LIKE ---
   const handleLike = async () => {
-    if (!user) {
-      alert('Debes iniciar sesión para dar like');
-      return;
-    }
+    if (!user) return alert('Debes iniciar sesión para dar like');
     try {
       await postAPI.like(post._id);
-      loadPost();
+      // Recargar solo el post para actualizar contador visualmente
+      const updated = await postAPI.getById(id);
+      setPost(updated);
     } catch (error) {
-      console.error('Error al dar like:', error);
+      console.error("Error like:", error);
     }
   };
 
-  const handleAddComment = async () => {
-    if (!commentText.trim()) {
-      alert('El comentario no puede estar vacío');
-      return;
-    }
+  // --- 🟢 2. FUNCIONALIDAD: REPORTAR ---
+  const handleReport = async () => {
+    if (!user) return alert('Debes iniciar sesión para reportar');
     
-    try {
-      await postAPI.addComment(post._id, { content: commentText });
-      setCommentText('');
-      loadPost(); // Recargar para ver el comentario nuevo
-    } catch (error) {
-      console.error('Error al agregar comentario:', error);
+    const reason = prompt("¿Por qué reportas este contenido? (spam, inapropiado, ofensivo)");
+    if (reason) {
+      try {
+        await postAPI.report(post._id, { reason: 'other', description: reason });
+        alert('✅ Reporte enviado al equipo de moderación.');
+      } catch (error) {
+        alert('❌ Ya has reportado esta publicación o ocurrió un error.');
+      }
     }
   };
 
+  // --- 🟢 3. FUNCIONALIDAD: ELIMINAR (AUTOR + ADMINS) ---
   const handleDelete = async () => {
-    if (!window.confirm('¿Estás seguro de eliminar esta publicación?')) return;
+    if(!window.confirm("¿Estás seguro de borrar este tema permanentemente? No se puede deshacer.")) return;
     
     try {
       await postAPI.delete(post._id);
-      navigate('/forum');
+      alert('✅ Publicación eliminada.');
+      navigate('/forum'); // Volver al listado
     } catch (error) {
-      console.error('Error al eliminar:', error);
-      alert('Error al eliminar la publicación');
+      console.error(error);
+      alert('❌ Error: No tienes permisos para borrar esto.');
     }
   };
 
-  const formatRelativeTime = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-
-    if (diffInSeconds < 60) return 'hace unos segundos';
-    if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} min`;
-    if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} h`;
-    if (diffInSeconds < 2592000) return `hace ${Math.floor(diffInSeconds / 86400)} d`;
+  // Helper: ¿Puede este usuario borrar el post?
+  const canDelete = (postAuthorId) => {
+    if (!user) return false;
     
-    return date.toLocaleDateString('es-ES');
+    // 1. Es el dueño del post
+    if (user._id === postAuthorId) return true; 
+    
+    // 2. Es Administrador
+    if (user.role === 'admin') {
+        if (user.adminRole === 'superadmin') return true; // Dios borra todo
+        if (user.adminRole === 'regional') return true;   // Regional (el backend validará si es SU región)
+    }
+    return false;
   };
 
-  if (loading) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.loading}>⏳ Cargando publicación...</div>
-      </div>
-    );
-  }
+  // Manejar Nuevo Comentario
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+    try {
+      await postAPI.addComment(post._id, { content: commentText });
+      setCommentText('');
+      // Recargar para ver el comentario nuevo
+      const updatedPost = await postAPI.getById(id);
+      setPost(updatedPost);
+    } catch (error) {
+      console.error("Error enviando comentario:", error);
+    }
+  };
 
-  if (error) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.error}>❌ {error}</div>
-        <button onClick={() => navigate('/forum')} style={styles.backButton}>
-          ← Volver al foro
-        </button>
-      </div>
-    );
-  }
-
-  if (!post) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.error}>❌ Publicación no encontrada</div>
-        <button onClick={() => navigate('/forum')} style={styles.backButton}>
-          ← Volver al foro
-        </button>
-      </div>
-    );
-  }
-
-  const isAuthor = user && user._id === post.author._id;
-
-  return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <button onClick={() => navigate('/forum')} style={styles.backButton}>
-          ← Volver al foro
-        </button>
-        {isAuthor && (
-          <div style={styles.authorActions}>
-            <button 
-              onClick={() => navigate(`/forum/edit/${post._id}`)}
-              style={styles.editButton}
-            >
-              ✏️ Editar
-            </button>
-            <button 
-              onClick={handleDelete}
-              style={styles.deleteButton}
-            >
-              🗑️ Eliminar
-            </button>
-          </div>
-        )}
+  // Componente interno para renderizar un "Mensaje"
+  // Ahora recibe 'authorId' para validar permisos
+  const ThreadMessage = ({ author, content, date, role, isOriginalPost, authorId }) => (
+    <div className={styles.messageCard}>
+      {/* Lado Izquierdo: Autor */}
+      <div className={styles.authorSide}>
+        <div className={styles.avatarLarge}>
+          {author?.name?.charAt(0).toUpperCase() || '?'}
+        </div>
+        <span className={styles.authorName}>{author?.name || 'Usuario'}</span>
+        <span className={styles.authorRole}>{role || 'Miembro'}</span>
       </div>
 
-      {/* Contenido principal */}
-      <div style={styles.postCard}>
-        {/* Información del autor */}
-        <div style={styles.postHeader}>
-          <div style={styles.authorInfo}>
-            <span style={styles.author}>👤 {post.author?.name || 'Usuario'}</span>
-            <span style={styles.timestamp}>
-              🕒 {formatRelativeTime(post.createdAt)}
-            </span>
-          </div>
-          <span style={styles.category}>
-            📁 {post.category?.name || 'General'}
-          </span>
+      {/* Lado Derecho: Contenido */}
+      <div className={styles.contentSide}>
+        <div className={styles.messageMeta}>
+          <span>{formatRelativeTime(date)}</span>
+          <span>#{isOriginalPost ? '1' : ''}</span>
         </div>
-
-        {/* Título y contenido */}
-        <h1 style={styles.postTitle}>{post.title}</h1>
-        <div style={styles.postContent}>
-          {post.content}
+        <div className={styles.messageBody}>
+          {content}
         </div>
-
-        {/* Tags */}
-        {post.tags && post.tags.length > 0 && (
-          <div style={styles.tags}>
-            {post.tags.map((tag, index) => (
-              <span key={index} style={styles.tag}>#{tag}</span>
-            ))}
-          </div>
-        )}
-
-        {/* Estadísticas */}
-        <div style={styles.postStats}>
-          <span>❤️ {post.likes?.length || 0} likes</span>
-          <span>💬 {post.comments?.length || 0} comentarios</span>
-          <span>👁️ {post.viewCount || 0} vistas</span>
-        </div>
-
-        {/* Botones de interacción */}
-        <div style={styles.interactionButtons}>
-          <button 
-            onClick={handleLike}
-            style={post.likes?.includes(user?._id) ? styles.likeButtonActive : styles.likeButton}
-          >
-            ❤️ {post.likes?.length || 0}
-          </button>
-          
-          <button style={styles.commentButton}>
-            💬 {post.comments?.length || 0}
-          </button>
-        </div>
-
-        {/* Sección de comentarios */}
-        <div style={styles.commentsSection}>
-          <h3>💬 Comentarios</h3>
-          
-          {post.comments && post.comments.length > 0 ? (
-            post.comments.map((comment, index) => (
-              <div key={index} style={styles.comment}>
-                <div style={styles.commentHeader}>
-                  <strong>{comment.user?.name || 'Usuario'}:</strong>
-                  <span>{formatRelativeTime(comment.createdAt)}</span>
-                </div>
-                <p style={styles.commentText}>{comment.content}</p>
-              </div>
-            ))
-          ) : (
-            <p style={styles.noComments}>Aún no hay comentarios. ¡Sé el primero en comentar!</p>
+        
+        <div className={styles.messageActions}>
+          {/* Like: Solo en post principal (opcional) */}
+          {isOriginalPost && (
+             <button className={styles.actionBtn} onClick={handleLike}>
+               {post.likes?.includes(user?._id) ? '❤️' : '🤍'} {post.likes?.length || 0} Me gusta
+             </button>
           )}
+          
+          {/* Reportar */}
+          <button className={styles.actionBtn} onClick={handleReport}>
+            🚩 Reportar
+          </button>
 
-          {/* Formulario para nuevo comentario */}
-          {user && (
-            <div style={styles.commentForm}>
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Escribe tu comentario..."
-                style={styles.commentInput}
-                rows="3"
-              />
-              <button 
-                onClick={handleAddComment}
-                disabled={!commentText.trim()}
-                style={styles.submitCommentButton}
-              >
-                📤 Enviar comentario
-              </button>
-
-              <div style={styles.loginToComment}>
-                <p>Debes <Link to="/login" style={styles.loginLink}>iniciar sesión</Link> para poder comentar.</p>
-              </div>
-
-            </div>
+          {/* Eliminar: Solo si tiene permisos */}
+          {isOriginalPost && canDelete(authorId) && (
+             <button 
+               className={styles.actionBtn} 
+               style={{color:'var(--danger)', fontWeight:'bold'}} 
+               onClick={handleDelete}
+             >
+                🗑️ Borrar Tema
+             </button>
           )}
         </div>
       </div>
     </div>
   );
-}
 
-// Estilos (mantén los que ya tienes, solo asegúrate de que estén completos)
-const styles = {
-  container: {
-    maxWidth: '800px',
-    margin: '0 auto',
-    padding: 'clamp(10px, 3vw, 20px)',
-    background: '#1a1a1a',
-    minHeight: '100vh',
-    color: 'white',
-    boxSizing: 'border-box',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 'clamp(20px, 4vw, 30px)',
-    flexWrap: 'wrap',
-    gap: '15px',
-  },
-  backButton: {
-    padding: 'clamp(8px, 2vw, 10px) clamp(15px, 3vw, 20px)',
-    background: '#555',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    fontSize: 'clamp(14px, 3vw, 16px)',
-  },
-  authorActions: {
-    display: 'flex',
-    gap: 'clamp(5px, 2vw, 10px)',
-    flexWrap: 'wrap',
-  },
-  editButton: {
-    padding: 'clamp(8px, 2vw, 10px) clamp(12px, 2.5vw, 15px)',
-    background: '#3498db',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-  },
-  deleteButton: {
-    padding: 'clamp(8px, 2vw, 10px) clamp(12px, 2.5vw, 15px)',
-    background: '#e74c3c',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-  },
-  postContent: {
-    background: '#292929',
-    padding: 'clamp(20px, 4vw, 30px)',
-    borderRadius: '12px',
-  },
-  postHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 'clamp(15px, 3vw, 20px)',
-    flexWrap: 'wrap',
-    gap: '10px',
-  },
-  authorInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '5px',
-  },
-  author: {
-    fontWeight: 'bold',
-    fontSize: 'clamp(14px, 3vw, 16px)',
-  },
-  timestamp: {
-    color: '#888',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-  },
-  category: {
-    background: '#444',
-    padding: 'clamp(4px, 1vw, 5px) clamp(8px, 2vw, 10px)',
-    borderRadius: '6px',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-  },
-  postTitle: {
-    fontSize: 'clamp(1.5rem, 5vw, 2rem)',
-    margin: '0 0 clamp(15px, 3vw, 20px) 0',
-    color: '#fff',
-    lineHeight: '1.3',
-  },
-  postBody: {
-    fontSize: 'clamp(14px, 3vw, 16px)',
-    lineHeight: '1.6',
-    color: '#e0e0e0',
-    marginBottom: 'clamp(15px, 3vw, 20px)',
-    whiteSpace: 'pre-wrap',
-  },
-  stats: {
-    display: 'flex',
-    gap: 'clamp(15px, 3vw, 20px)',
-    padding: 'clamp(10px, 2vw, 15px) 0',
-    borderTop: '1px solid #333',
-    borderBottom: '1px solid #333',
-    marginBottom: 'clamp(15px, 3vw, 20px)',
-    color: '#888',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-    flexWrap: 'wrap',
-  },
-  actions: {
-    display: 'flex',
-    gap: 'clamp(8px, 2vw, 10px)',
-    marginBottom: 'clamp(20px, 4vw, 30px)',
-    flexWrap: 'wrap',
-  },
-  likeButton: {
-    padding: 'clamp(8px, 2vw, 10px) clamp(15px, 3vw, 20px)',
-    background: 'transparent',
-    border: '1px solid #555',
-    borderRadius: '20px',
-    color: '#888',
-    cursor: 'pointer',
-    fontSize: 'clamp(14px, 3vw, 16px)',
-  },
-  likeButtonActive: {
-    padding: 'clamp(8px, 2vw, 10px) clamp(15px, 3vw, 20px)',
-    background: 'rgba(255, 0, 0, 0.1)',
-    border: '1px solid #ff4444',
-    borderRadius: '20px',
-    color: '#ff4444',
-    cursor: 'pointer',
-    fontSize: 'clamp(14px, 3vw, 16px)',
-  },
-  commentButton: {
-    padding: 'clamp(8px, 2vw, 10px) clamp(15px, 3vw, 20px)',
-    background: 'transparent',
-    border: '1px solid #555',
-    borderRadius: '20px',
-    color: '#888',
-    cursor: 'pointer',
-    fontSize: 'clamp(14px, 3vw, 16px)',
-  },
-  commentsSection: {
-    borderTop: '1px solid #333',
-    paddingTop: '20px',
-  },
-  comment: {
-    background: '#333',
-    padding: '15px',
-    borderRadius: '8px',
-    marginBottom: '10px',
-  },
-  commentHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: '5px',
-    fontSize: '14px',
-  },
-  commentText: {
-    color: '#e0e0e0',
-    margin: 0,
-  },
-  noComments: {
-    color: '#888',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: '20px',
-  },
-  commentForm: {
-    marginTop: '20px',
-  },
-  commentInput: {
-    width: '100%',
-    padding: '12px',
-    background: '#1a1a1a',
-    border: '1px solid #444',
-    borderRadius: '6px',
-    color: 'white',
-    marginBottom: '10px',
-    resize: 'vertical',
-    fontFamily: 'inherit',
-  },
-  submitCommentButton: {
-    padding: '10px 20px',
-    background: '#8d8d8d',
-    border: 'none',
-    borderRadius: '6px',
-    color: 'white',
-    cursor: 'pointer',
-  },
-  loginToComment: {
-  textAlign: 'center',
-  padding: '20px',
-  background: '#333',
-  borderRadius: '8px',
-  margin: '20px 0',
-},
-loginLink: {
-  color: '#8d8d8d', // (o tu color de acento)
-  fontWeight: 'bold',
+  if (loading) return <div style={{padding:'50px', textAlign:'center'}}>Cargando conversación...</div>;
+  if (!post) return <div style={{padding:'50px', textAlign:'center'}}>Publicación no encontrada.</div>;
+
+  return (
+    <div className={styles.container}>
+      
+      {/* HEADER DEL TEMA */}
+      <div className={styles.threadHeader}>
+        <div className={styles.headerContent}>
+          <span className={styles.categoryLabel}>📁 {post.category?.name || 'General'}</span>
+          <h1 className={styles.threadTitle}>{post.title}</h1>
+        </div>
+      </div>
+
+      <div className={styles.layoutGrid}>
+        
+        {/* COLUMNA DEL HILO (Izquierda) */}
+        <div className={styles.threadColumn}>
+          
+          {/* 1. EL POST ORIGINAL */}
+          <ThreadMessage 
+            author={post.author}
+            role={post.author?.role === 'admin' ? `Admin ${post.author?.adminRole || ''}` : post.author?.role}
+            content={post.content}
+            date={post.createdAt}
+            isOriginalPost={true}
+            authorId={post.author?._id} // Pasamos ID para validar borrado
+          />
+
+          {/* 2. LOS COMENTARIOS */}
+          {post.comments?.map((comment, index) => (
+            <ThreadMessage 
+              key={index}
+              author={comment.user}
+              role={comment.user?.role}
+              content={comment.content}
+              date={comment.createdAt}
+              isOriginalPost={false}
+            />
+          ))}
+
+          {/* 3. CAJA DE RESPUESTA */}
+          {user ? (
+            <div className={styles.replySection}>
+              <h3 className={styles.replyTitle}>Responder al tema</h3>
+              <textarea 
+                className={styles.replyInput}
+                placeholder="Escribe tu respuesta aquí..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+              />
+              <button className={styles.submitBtn} onClick={handleAddComment}>
+                Publicar Respuesta
+              </button>
+            </div>
+          ) : (
+            <div className={styles.widget} style={{textAlign:'center'}}>
+              <p>Debes iniciar sesión para responder.</p>
+              <Link to="/login" style={{color:'var(--accent)', fontWeight:'bold'}}>Ir al Login</Link>
+            </div>
+          )}
+
+        </div>
+
+        {/* SIDEBAR (Derecha) */}
+        <aside className={styles.sidebar}>
+          <Link to="/forum" className={styles.backBtn}>← Volver a la lista</Link>
+          
+          <div className={styles.widget}>
+            <strong>Estadísticas del Tema</strong>
+            <ul style={{listStyle:'none', padding:0, marginTop:'15px', fontSize:'0.9rem', color:'var(--text-muted)'}}>
+               <li style={{marginBottom:'5px'}}>👀 Vistas: {post.viewCount}</li>
+               <li style={{marginBottom:'5px'}}>💬 Respuestas: {post.comments?.length || 0}</li>
+               <li>📅 Creado: {new Date(post.createdAt).toLocaleDateString()}</li>
+            </ul>
+          </div>
+
+          <div className={styles.widget}>
+             <p style={{fontSize:'0.9rem', color:'var(--text-muted)', margin:0}}>
+               Recuerda mantener el respeto en la comunidad. Si ves algo inapropiado, repórtalo.
+             </p>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  );
 }
-};

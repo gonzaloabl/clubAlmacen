@@ -1,101 +1,59 @@
-/* src/index.css */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+:root {
+  /* --- TIPOGRAFÍA --- */
+  --base-font-size: 100%; /* 16px */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* --- COLORES MODO CLARO (Default - Estilo Disputo) --- */
+  --bg-body: #f0f2f5;          /* Fondo general gris muy suave */
+  --bg-card: #ffffff;          /* Fondo de tarjetas/contenedores */
+  --bg-sidebar: #34495e;       /* Sidebar azul oscuro clásico de foros */
+  --bg-sidebar-hover: #2c3e50;
+  
+  --text-main: #2c3e50;        /* Texto principal casi negro */
+  --text-muted: #7f8c8d;       /* Texto secundario gris */
+  --text-inverse: #ecf0f1;     /* Texto claro sobre fondos oscuros */
+  
+  --accent: #3498db;           /* Azul principal (botones, enlaces) */
+  --accent-hover: #2980b9;
+  --border: #e0e0e0;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --warning: #f1c40f;
+}
+
+/* --- MODO OSCURO --- */
+[data-theme='dark'] {
+  --bg-body: #121212;
+  --bg-card: #1e1e1e;
+  --bg-sidebar: #181818;
+  --bg-sidebar-hover: #252525;
+  
+  --text-main: #e0e0e0;
+  --text-muted: #a0a0a0;
+  --text-inverse: #e0e0e0;
+  
+  --accent: #5dade2;
+  --accent-hover: #3498db;
+  --border: #333333;
+}
+
+/* --- REGLAS GLOBALES --- */
+html {
+  font-size: var(--base-font-size);
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #1a1a1a;
-  color: white;
-  line-height: 1.6;
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Utilidades responsive */
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 clamp(10px, 3vw, 20px);
-}
-
-/* Texto responsive */
-h1 { font-size: clamp(1.5rem, 5vw, 2.5rem); }
-h2 { font-size: clamp(1.3rem, 4vw, 2rem); }
-h3 { font-size: clamp(1.1rem, 3vw, 1.5rem); }
-h4 { font-size: clamp(1rem, 2.5vw, 1.25rem); }
-
-/* Botones base responsive */
-.btn {
-  padding: clamp(8px, 2vw, 12px) clamp(15px, 3vw, 24px);
-  font-size: clamp(14px, 3vw, 16px);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.btn-primary {
-  background: #8d8d8d;
-  color: white;
-}
-
-.btn-secondary {
-  background: transparent;
-  color: white;
-  border: 2px solid #8d8d8d;
-}
-
-/* Grid responsive */
-.grid {
-  display: grid;
-  gap: clamp(10px, 3vw, 20px);
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-}
-
-/* Media queries específicas */
-@media (max-width: 768px) {
-  .hide-on-mobile {
-    display: none !important;
-  }
-  
-  .stack-on-mobile {
-    flex-direction: column !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .text-center-mobile {
-    text-align: center;
-  }
-  
-  .full-width-mobile {
-    width: 100% !important;
-  }
-}
-
-/* Mejoras de scroll */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #2a2a2a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #8d8d8d;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #575656;
-}
+/* Scrollbar moderna */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-body); }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }

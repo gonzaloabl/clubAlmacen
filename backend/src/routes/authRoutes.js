@@ -83,6 +83,7 @@ router.post('/register', async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,  // 🆕 INCLUIMOS EL ROL EN LA RESPUESTA
+      adminRole: user.adminRole,
       token: token
     });
 
@@ -141,6 +142,7 @@ router.post('/login', async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,  // 🆕 INCLUIMOS EL ROL
+      adminRole: user.adminRole,
       token: generateToken(user._id)
     });
 

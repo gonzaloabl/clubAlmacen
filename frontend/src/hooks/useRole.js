@@ -17,7 +17,10 @@ export const useRole = () => {
   const isAdmin = user?.role === 'admin';
   const isProveedor = user?.role === 'proveedor';
   const isLocatario = user?.role === 'locatario';
-  const isPending = user?.role === 'pending'; // 🆕 Usuarios temporales
+  const isPending = user?.role === 'pending';// 🆕 Usuarios temporales
+  const isSuperAdmin = isAdmin && user?.adminRole === 'superadmin';
+  const isRegionalAdmin = isAdmin && user?.adminRole === 'regional';
+  const isTechnicalAdmin = isAdmin && user?.adminRole === 'technical'; 
 
   // 🆕 Verificaciones de estado de registro
   const registrationComplete = user?.registrationComplete ?? true; // Por defecto true para usuarios locales
@@ -34,6 +37,9 @@ export const useRole = () => {
     hasRole,
     hasAnyRole,
     isAdmin,
+    isSuperAdmin,    // <--- 🚨 EXPORTAR AQUÍ
+    isRegionalAdmin, // <--- 🚨 EXPORTAR AQUÍ
+    isTechnicalAdmin,//
     isProveedor,
     isLocatario,
     isPending,
@@ -42,6 +48,7 @@ export const useRole = () => {
     canCreateContent,
     canViewContent,
     isReadOnly,
-    currentRole: user?.role
+    currentRole: user?.role,
+    adminRole: user?.adminRole
   };
 };

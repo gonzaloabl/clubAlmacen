@@ -11,6 +11,7 @@ import { LandingPage } from './components/pages/LandingPage.jsx';
 import { NavBar } from './components/common/NavBar.jsx';
 import { Noticias } from './components/common/Noticias.jsx';
 import { TestRoles } from './components/TestRoles';
+import { ProvidersDirectory } from './components/pages/ProvidersDirectory.jsx';
 
 // 🆕 IMPORTAR DASHBOARDS
 import { Dashboard } from './components/Dashboard.jsx';
@@ -193,11 +194,17 @@ function AppContent() {
           </MainLayout>
         </RoleProtectedRoute>
       } />
-
+      
       {/* ✅ RUTAS EXISTENTES DE TU APP */}
       <Route path="/noticias" element={
         <MainLayout>
           <Noticias />
+        </MainLayout>
+      } />
+      {/* 👇 2. AGREGA ESTA RUTA NUEVA (Puede ir debajo de noticias) */}
+      <Route path="/directorio" element={
+        <MainLayout>
+          <ProvidersDirectory />
         </MainLayout>
       } />
       

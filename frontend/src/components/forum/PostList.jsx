@@ -1,405 +1,212 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Agregar useNavigate
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { postAPI } from '../../services/api';
+import { postAPI, categoryAPI } from '../../services/api'; // Asegúrate de tener categoryAPI
 import { formatRelativeTime } from '../../utils/helpers';
+import styles from './PostList.module.css'; // Importamos el nuevo CSS
 
 export function PostList() {
   const [posts, setPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [activePost, setActivePost] = useState(null);
-  const [commentText, setCommentText] = useState('');
-  const [showReportModal, setShowReportModal] = useState(null);
-  const [reportReason, setReportReason] = useState('');
-
+  const [filter, setFilter] = useState('all'); // 'all', 'unanswered', 'popular'
+  
   const { user } = useAuth();
-  const navigate = useNavigate(); // Inicializar navigate
-
-  const loadPosts = async () => {
-    try {
-      const data = await postAPI.getAll();
-      setPosts(data.posts || []);
-    } catch (err) {
-      setError('Error al cargar publicaciones');
-      console.error('Error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Recuperar parámetros de URL (búsqueda o categoría)
+  const searchQuery = searchParams.get('search');
+  const categoryQuery = searchParams.get('cat');
 
   useEffect(() => {
-    loadPosts();
-  }, []);
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // 1. Cargar Categorías para el Sidebar
+        const catsData = await categoryAPI.getAll();
+        setCategories(catsData);
 
-  // Función para manejar clic en una publicación
-  const handlePostClick = (postId) => {
-    navigate(`/forum/post/${postId}`);
-  };
+        // 2. Cargar Posts con filtros del Backend
+        const filters = {};
+        if (searchQuery) filters.search = searchQuery;
+        if (categoryQuery) {
+            // Buscar el ID de la categoría si viene por nombre o usar directo si es ID
+            // Por simplicidad asumimos que el backend maneja IDs o implementamos lógica aquí
+            filters.category = categoryQuery; 
+        }
 
-  // Función para evitar que el clic en botones propague al contenedor
-  const handleButtonClick = (e, action) => {
-    e.stopPropagation(); // Esto evita que el clic se propague al contenedor de la publicación
-    action();
-  };
+        const postsData = await postAPI.getAll(filters);
+        setPosts(postsData.posts || []);
+      } catch (err) {
+        console.error("Error cargando foro:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleLike = async (postId) => {
-    if (!user) {
-      alert('Debes iniciar sesión para dar like');
-      return;
+    loadData();
+  }, [searchQuery, categoryQuery]);
+
+  // Lógica de filtrado en cliente (Tabs)
+  const getFilteredPosts = () => {
+    let filtered = [...posts];
+    
+    if (filter === 'unanswered') {
+      filtered = filtered.filter(p => p.comments.length === 0);
+    } else if (filter === 'popular') {
+      // Ordenar por likes + vistas
+      filtered.sort((a, b) => (b.viewCount + b.likes.length) - (a.viewCount + a.likes.length));
     }
-
-    try {
-      await postAPI.like(postId);
-      loadPosts();
-    } catch (error) {
-      console.error('Error al dar like:', error);
-    }
+    // 'all' usa el orden por defecto del backend (fecha)
+    
+    return filtered;
   };
 
-  const handleAddComment = async (postId) => {
-    if (!commentText.trim()) return;
-
-    try {
-      await postAPI.addComment(postId, { content: commentText });
-      setCommentText('');
-      setActivePost(null);
-      loadPosts();
-    } catch (error) {
-      console.error('Error al agregar comentario:', error);
-    }
-  };
-
-  const handleReport = async (postId) => {
-    if (!reportReason) return;
-
-    try {
-      await postAPI.report(postId, { reason: reportReason });
-      setReportReason('');
-      setShowReportModal(null);
-      alert('✅ Publicación reportada correctamente');
-    } catch (error) {
-      console.error('Error al reportar:', error);
-    }
-  };
-
-
-  if (loading) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.loading}>⏳ Cargando publicaciones...</div>
-      </div>
-    );
-  }
+  const displayedPosts = getFilteredPosts();
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1>🏪 Foro de la Comunidad</h1>
-        <p>Discute, comparte y conecta con otros miembros</p>
-        
-        {user && (
-          <Link to="/forum/create" style={styles.createButton}>
-            📝 Crear Publicación
-          </Link>
-        )}
+    <div className={styles.container}>
+      
+      {/* HEADER TIPO DISPUTO */}
+      <div className={styles.forumHeader}>
+        <h1 className={styles.headerTitle}>Foro de la Comunidad</h1>
+        <p className={styles.headerSubtitle}>
+          Bienvenido al punto de encuentro. Busca respuestas, comparte experiencias y conecta con colegas.
+        </p>
       </div>
 
-      {error && (
-        <div style={styles.error}>
-          ❌ {error}
-        </div>
-      )}
+      <div className={styles.layoutGrid}>
+        
+        {/* --- COLUMNA PRINCIPAL --- */}
+        <div className={styles.mainColumn}>
+          
+          {/* Toolbar: Tabs de filtro */}
+          <div className={styles.toolbar}>
+            <div className={styles.tabs}>
+              <div 
+                className={`${styles.tab} ${filter === 'all' ? styles.activeTab : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                Recientes
+              </div>
+              <div 
+                className={`${styles.tab} ${filter === 'popular' ? styles.activeTab : ''}`}
+                onClick={() => setFilter('popular')}
+              >
+                Populares
+              </div>
+              <div 
+                className={`${styles.tab} ${filter === 'unanswered' ? styles.activeTab : ''}`}
+                onClick={() => setFilter('unanswered')}
+              >
+                Sin Respuesta
+              </div>
+            </div>
+            {/* Aquí podrías poner un buscador local pequeño si quisieras */}
+          </div>
 
-      <div style={styles.postsContainer}>
-        {posts.length === 0 ? (
-          <div style={styles.emptyState}>
-            <h3>📭 No hay publicaciones aún</h3>
-            <p>Sé el primero en crear una publicación y empezar la conversación</p>
-            {user && (
-              <Link to="/forum/create" style={styles.createButton}>
-                Crear Primera Publicación
+          {/* Lista de Temas */}
+          <div className={styles.topicList}>
+            {loading ? (
+              <div style={{padding:'40px', textAlign:'center', color:'var(--text-muted)'}}>Cargando discusiones...</div>
+            ) : displayedPosts.length === 0 ? (
+              <div style={{padding:'40px', textAlign:'center', color:'var(--text-muted)'}}>
+                No se encontraron temas. ¡Sé el primero en publicar!
+              </div>
+            ) : (
+              displayedPosts.map(post => (
+                <div key={post._id} className={styles.topicRow} onClick={() => navigate(`/forum/post/${post._id}`)}>
+                  
+                  {/* Avatar Autor */}
+                  <div className={styles.avatarContainer}>
+                    <div className={styles.avatar}>
+                      {post.author?.name?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                  </div>
+
+                  {/* Info Principal */}
+                  <div className={styles.topicContent}>
+                    <div className={styles.topicTitle}>
+                      {post.isPinned && <span className={styles.pinnedBadge}>Fijado</span>}
+                      {post.title}
+                    </div>
+                    <div className={styles.topicMeta}>
+                      Por <strong>{post.author?.name}</strong> • {formatRelativeTime(post.createdAt)} • en <span style={{color:'var(--accent)'}}>{post.category?.name || 'General'}</span>
+                    </div>
+                  </div>
+
+                  {/* Estadísticas */}
+                  <div className={styles.topicStats}>
+                    <div className={styles.statItem}>
+                      <span className={styles.statValue}>{post.comments?.length || 0}</span>
+                      <span className={styles.statLabel}>Respuestas</span>
+                    </div>
+                    <div className={styles.statItem}>
+                      <span className={styles.statValue}>{post.viewCount || 0}</span>
+                      <span className={styles.statLabel}>Vistas</span>
+                    </div>
+                  </div>
+
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* --- SIDEBAR DERECHO --- */ }
+        <aside className={styles.sidebar}>
+          
+          {/* Botón Crear */}
+          <div className={styles.widget}>
+            {user ? (
+              <Link to="/forum/create" className={styles.createBtn}>
+                ✏️ Iniciar Nueva Discusión
+              </Link>
+            ) : (
+              <Link to="/login" className={styles.createBtn} style={{background:'transparent', border:'2px solid var(--accent)', color:'var(--text-main)'}}>
+                Ingresar para Publicar
               </Link>
             )}
           </div>
-        ) : (
-          <div style={styles.postsList}>
-            {posts.map(post => (
-              // Contenedor principal clickeable
-              <div 
-                key={post._id} 
-                style={styles.postCard}
-                onClick={() => handlePostClick(post._id)}
-              >
-                {/* Header con información del autor y tiempo */}
-                <div style={styles.postHeader}>
-                  <div style={styles.authorInfo}>
-                    <span style={styles.author}>👤 {post.author?.name || 'Usuario'}</span>
-                    <span style={styles.timestamp}>
-                      🕒 {formatRelativeTime(post.createdAt)}
-                    </span>
-                  </div>
-                  <span style={styles.category}>
-                    📁 {post.category?.name || 'General'}
-                  </span>
-                </div>
 
-                {/* Contenido del post - clickeable */}
-                <h3 style={styles.postTitle}>{post.title}</h3>
-                <p style={styles.postContent}>
-                  {post.content.length > 200 
-                    ? `${post.content.substring(0, 200)}...` 
-                    : post.content
-                  }
-                </p>
-
-                {/* Estadísticas */}
-                <div style={styles.postStats}>
-                  <span>❤️ {post.likes?.length || 0} likes</span>
-                  <span>💬 {post.comments?.length || 0} comentarios</span>
-                  <span>👁️ {post.viewCount || 0} vistas</span>
-                </div>
-
-                {/* Botones de interacción - NO clickeables para navegación */}
-                <div style={styles.interactionButtons}>
-                  <button 
-                    onClick={(e) => handleButtonClick(e, () => handleLike(post._id))}
-                    style={post.likes?.includes(user?._id) ? styles.likeButtonActive : styles.likeButton}
-                  >
-                    ❤️ {post.likes?.length || 0}
-                  </button>
-                  
-                  <button 
-                    onClick={(e) => handleButtonClick(e, () => setActivePost(activePost === post._id ? null : post._id))}
-                    style={styles.commentButton}
-                  >
-                    💬 Comentar
-                  </button>
-
-                  <button 
-                    onClick={(e) => handleButtonClick(e, () => setShowReportModal(post._id))}
-                    style={styles.reportButton}
-                  >
-                    🚩 Reportar
-                  </button>
-                </div>
-
-                {/* Sección de comentarios (expandible) */}
-                {activePost === post._id && (
-                  <div style={styles.commentsSection} onClick={(e) => e.stopPropagation()}>
-                    <h4 style={styles.commentsTitle}>💬 Comentarios ({post.comments?.length || 0})</h4>
-                    
-                    {post.comments?.length > 0 ? (
-                      post.comments.map(comment => (
-                        <div key={comment._id || comment.createdAt} style={styles.comment}>
-                          <div style={styles.commentHeader}>
-                            <strong style={styles.commentAuthor}>
-                              {comment.user?.name || 'Usuario'}:
-                            </strong>
-                            <span style={styles.commentTime}>
-                              {formatRelativeTime(comment.createdAt)}
-                            </span>
-                          </div>
-                          <p style={styles.commentContent}>{comment.content}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <p style={styles.noComments}>Aún no hay comentarios. ¡Sé el primero en comentar!</p>
-                    )}
-                    
-                    {/* Formulario para nuevo comentario */}
-                    {user && (
-                      <div style={styles.commentForm}>
-                        <textarea
-                          value={commentText}
-                          onChange={(e) => setCommentText(e.target.value)}
-                          placeholder="Escribe tu comentario..."
-                          style={styles.commentInput}
-                          rows="3"
-                        />
-                        <button 
-                          onClick={(e) => handleButtonClick(e, () => handleAddComment(post._id))}
-                          style={styles.submitCommentButton}
-                          disabled={!commentText.trim()}
-                        >
-                          📤 Enviar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Modal de reporte */}
-                {showReportModal === post._id && (
-                  <div style={styles.modalOverlay} onClick={(e) => e.stopPropagation()}>
-                    <div style={styles.modal}>
-                      <h3>🚩 Reportar Publicación</h3>
-                      <p>¿Por qué quieres reportar esta publicación?</p>
-                      
-                      <select 
-                        value={reportReason}
-                        onChange={(e) => setReportReason(e.target.value)}
-                        style={styles.reportSelect}
-                      >
-                        <option value="">Selecciona un motivo</option>
-                        <option value="spam">Spam o publicidad no deseada</option>
-                        <option value="inappropriate">Contenido inapropiado</option>
-                        <option value="harassment">Acoso o discurso de odio</option>
-                        <option value="other">Otro motivo</option>
-                      </select>
-                      
-                      <div style={styles.modalButtons}>
-                        <button 
-                          onClick={(e) => handleButtonClick(e, () => setShowReportModal(null))}
-                          style={styles.cancelButton}
-                        >
-                          Cancelar
-                        </button>
-                        <button 
-                          onClick={(e) => handleButtonClick(e, () => handleReport(post._id))}
-                          style={styles.confirmReportButton}
-                          disabled={!reportReason}
-                        >
-                          Reportar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+          {/* Categorías */}
+          <div className={styles.widget}>
+            <h4 className={styles.widgetTitle}>Categorías</h4>
+            <ul className={styles.categoryList}>
+              <li className={styles.categoryItem} onClick={() => navigate('/forum')}>
+                 <span>📂 Ver Todo</span>
+              </li>
+              {categories.map(cat => (
+                <li 
+                    key={cat._id} 
+                    className={styles.categoryItem}
+                    onClick={() => navigate(`/forum?cat=${cat._id}`)}
+                >
+                  <span>{cat.name}</span>
+                  {/* Si tuvieras conteo de posts por categoría, iría aquí */}
+                  {/* <span className={styles.categoryCount}>12</span> */}
+                </li>
+              ))}
+            </ul>
           </div>
-        )}
+
+          {/* Búsqueda Rápida (Widget) */}
+          <div className={styles.widget}>
+             <h4 className={styles.widgetTitle}>Buscar en Foro</h4>
+             <input 
+                type="text" 
+                placeholder="Palabra clave..." 
+                style={{width:'100%', padding:'10px', borderRadius:'5px', border:'1px solid var(--border)', background:'var(--bg-body)', color:'var(--text-main)'}}
+                onKeyDown={(e) => {
+                    if(e.key === 'Enter') navigate(`/forum?search=${e.target.value}`);
+                }}
+             />
+          </div>
+
+        </aside>
+
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: '1000px',
-    margin: '0 auto',
-    padding: 'clamp(10px, 3vw, 20px)',
-    background: '#1a1a1a',
-    minHeight: '100vh',
-    color: 'white',
-    boxSizing: 'border-box',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: 'clamp(20px, 5vw, 40px)',
-    padding: 'clamp(15px, 4vw, 30px)',
-    background: '#292929',
-    borderRadius: '12px',
-  },
-  createButton: {
-    display: 'inline-block',
-    padding: 'clamp(10px, 3vw, 12px) clamp(15px, 4vw, 25px)',
-    background: '#8d8d8d',
-    color: 'white',
-    textDecoration: 'none',
-    borderRadius: '8px',
-    fontWeight: 'bold',
-    marginTop: '15px',
-    transition: 'background 0.3s',
-    fontSize: 'clamp(14px, 3vw, 16px)',
-  },
-  postsList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 'clamp(15px, 3vw, 20px)',
-  },
-  postCard: {
-    background: '#292929',
-    padding: 'clamp(15px, 4vw, 25px)',
-    borderRadius: '12px',
-    border: '1px solid #333',
-    transition: 'all 0.3s ease',
-    cursor: 'pointer',
-    position: 'relative',
-  },
-  postHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '15px',
-    flexWrap: 'wrap',
-    gap: '10px',
-  },
-  authorInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '5px',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-  },
-  postTitle: {
-    margin: '0 0 15px 0',
-    color: '#fff',
-    fontSize: 'clamp(1.1rem, 4vw, 1.4rem)',
-    lineHeight: '1.3',
-  },
-  postContent: {
-    color: '#e0e0e0',
-    lineHeight: '1.6',
-    marginBottom: '15px',
-    fontSize: 'clamp(14px, 3vw, 16px)',
-  },
-  postStats: {
-    display: 'flex',
-    gap: 'clamp(10px, 3vw, 20px)',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-    color: '#888',
-    marginBottom: '15px',
-    flexWrap: 'wrap',
-  },
-  interactionButtons: {
-    display: 'flex',
-    gap: 'clamp(5px, 2vw, 10px)',
-    borderTop: '1px solid #333',
-    paddingTop: '15px',
-    flexWrap: 'wrap',
-  },
-  likeButton: {
-    padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 15px)',
-    background: 'transparent',
-    border: '1px solid #555',
-    borderRadius: '20px',
-    color: '#888',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-  },
-  likeButtonActive: {
-    padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 15px)',
-    background: 'rgba(255, 0, 0, 0.1)',
-    border: '1px solid #ff4444',
-    borderRadius: '20px',
-    color: '#ff4444',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-  },
-  commentButton: {
-    padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 15px)',
-    background: 'transparent',
-    border: '1px solid #555',
-    borderRadius: '20px',
-    color: '#888',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-  },
-  reportButton: {
-    padding: 'clamp(6px, 2vw, 8px) clamp(10px, 3vw, 15px)',
-    background: 'transparent',
-    border: '1px solid #555',
-    borderRadius: '20px',
-    color: '#888',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-    fontSize: 'clamp(12px, 2.5vw, 14px)',
-    marginLeft: 'auto',
-  },
-  // ... resto de estilos
-};
-
