@@ -23,6 +23,11 @@ export default defineConfig({
             console.log('🔍 Response Headers:', proxyRes.headers);
           });
         }
+      },
+      '/uploads': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
       }
     }
   }

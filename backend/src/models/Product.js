@@ -19,7 +19,14 @@ const productSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ["electronica", "ropa", "hogar", "otros"]
+    enum: ["electronica", "ropa", "hogar", "otros", "alimentos", "bebidas", "limpieza"] // Agregué rubros más comunes
+  },
+  
+  // 🆕 NUEVO CAMPO: DUEÑO DEL PRODUCTO
+  provider: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   }
 }, { timestamps: true });
 

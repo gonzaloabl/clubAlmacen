@@ -14,7 +14,22 @@ export function DashboardLayout({ title, subtitle, sidebarItems, children }) {
         {/* Perfil Miniatura */}
         <div style={styles.profileBox}>
           <div style={styles.avatar}>
-            {user?.name?.charAt(0).toUpperCase()}
+            {/* 👇 AQUÍ ESTÁ EL CAMBIO: Si tiene avatar, muestra la foto */}
+            {user?.avatar ? (
+              <img 
+                src={user.avatar} 
+                alt="Perfil" 
+                style={{
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover', 
+                  borderRadius: '50%'
+                }} 
+              />
+            ) : (
+              // Si no tiene, muestra la inicial
+              user?.name?.charAt(0).toUpperCase()
+            )}
           </div>
           <div style={styles.userInfo}>
             <h3 style={styles.userName}>{user?.name}</h3>

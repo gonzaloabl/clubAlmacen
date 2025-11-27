@@ -3,10 +3,12 @@ dotenv.config();
 console.log('🔄 Variables después de dotenv:');
 console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID || '❌ No definido');
 console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '✅ Existe' : '❌ No existe');
+import path from 'path';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import cron from 'node-cron';                 // Importamos node-cron
+import cron from 'node-cron';  
+import { fileURLToPath } from 'url';               
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
@@ -19,12 +21,16 @@ import adminRoutes from './routes/adminRoutes.js';
 import googleCompleteRoutes from './routes/googleCompleteRoutes.js';
 import newsRoutes from './routes/newsRoutes.js'; // Importamos la nueva ruta
 import { fetchAndSaveNews } from './scripts/fetchNews.js'; // Importamos la función del script
+import blogRoutes from './routes/blogRoutes.js';
 
 
 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Middlewares
 app.use(cors({
@@ -60,6 +66,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/blog', blogRoutes);
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 
 // --- TAREA PROGRAMADA (CRON JOB) ---

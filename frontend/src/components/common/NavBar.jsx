@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useRole } from '../../hooks/useRole';
@@ -6,10 +7,9 @@ import { AccessibilityControls } from './AccessibilityControls'; // 1. Importar 
 export function NavBar() {
   const { user, logout } = useAuth();
   const { currentRole } = useRole();
-
-  const handleLogout = () => {
-    logout();
-  };
+  
+  // 🆕 Estado para el dropdown
+  const [showDirectories, setShowDirectories] = useState(false);
 
   return (
     <nav style={styles.navbar}>
@@ -18,15 +18,35 @@ export function NavBar() {
       </div>
       
       <div style={styles.menu}>
-        {/* Enlaces públicos */}
         <Link to="/" style={styles.menuItem}>Inicio</Link>
+        <Link to="/muro" style={styles.menuItem}>Muro Oficial</Link>
         <Link to="/noticias" style={styles.menuItem}>Noticias</Link>
         <Link to="/forum" style={styles.menuItem}>Foro</Link>
-        <Link to="/directorio" style={styles.menuItem}>Proveedores</Link>
-        {/* 2. INSERTAR CONTROLES DE ACCESIBILIDAD AQUÍ */}
+        
+        {/* 🆕 MENÚ DESPLEGABLE (DROPDOWN) */}
+        <div 
+          style={styles.dropdownContainer}
+          onMouseEnter={() => setShowDirectories(true)}
+          onMouseLeave={() => setShowDirectories(false)}
+        >
+          <span style={{...styles.menuItem, cursor:'pointer'}}>
+            Directorios ▾
+          </span>
+          
+          {showDirectories && (
+            <div style={styles.dropdownMenu}>
+              <Link to="/directorio" style={styles.dropdownItem}>🚚 Proveedores</Link>
+              <Link to="/comercios" style={styles.dropdownItem}>🏪 Locatarios</Link>
+            </div>
+          )}
+        </div>
+
+        <Link to="/herramientas" style={styles.menuItem}>Herramientas</Link>
+        
+        
         <AccessibilityControls />
         
-        {/* Menú de Usuario */}
+        {/* ... (Menú de usuario igual que antes) ... */}
         {user ? (
           <div style={styles.userMenu}>
             <Link to="/dashboard" style={styles.profileLink}>
@@ -35,15 +55,10 @@ export function NavBar() {
                 <span style={styles.userRole}>({currentRole})</span>
               </div>
             </Link>
-            
-            <button onClick={handleLogout} style={styles.logoutButton}>
-              Salir
-            </button>
+            <button onClick={logout} style={styles.logoutButton}>Salir</button>
           </div>
         ) : (
-          <Link to="/login" style={styles.loginButton}>
-            Ingresar
-          </Link>
+          <Link to="/login" style={styles.loginButton}>Ingresar</Link>
         )}
       </div>
     </nav>
@@ -87,6 +102,29 @@ const styles = {
     borderRadius: '5px',
     transition: 'background 0.3s ease',
     fontSize: '0.95rem'
+  },
+  dropdownContainer:{position: 'relative'},
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    background: 'var(--bg-card)', // Usa color del tema
+    border: '1px solid var(--border)',
+    borderRadius: '8px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+    minWidth: '160px',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    zIndex: 1001
+  },
+  dropdownItem: {
+    padding: '12px 15px',
+    color: 'var(--text-main)', // Usa color del tema
+    textDecoration: 'none',
+    fontSize: '0.9rem',
+    transition: 'background 0.2s',
+    display: 'block'
   },
   userMenu: {
     display: 'flex',

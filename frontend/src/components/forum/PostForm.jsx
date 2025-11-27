@@ -1,34 +1,37 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useRole } from '../../hooks/useRole';
 import { postAPI, categoryAPI } from '../../services/api';
+import { REGIONES } from '../../utils/regions'; // Asegúrate de tener este archivo
 
 export function PostForm() {
+  const { user } = useAuth();
+  const { isAdmin } = useRole();
+  const navigate = useNavigate();
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('');
   const [tags, setTags] = useState('');
+  const [type, setType] = useState('forum'); // 'forum' o 'blog'
+  const [region, setRegion] = useState('Nacional'); // Nueva Región
+  
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  // Cargar categorías al montar el componente
+  // Cargar categorías al montar
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const data = await categoryAPI.getAll();
         setCategories(data);
-        if (data.length > 0) {
-          setCategory(data[0]._id); // Establecer la primera categoría por defecto
-        }
+        if (data.length > 0) setCategory(data[0]._id);
       } catch (err) {
         setError('Error al cargar categorías');
       }
     };
-
     loadCategories();
   }, []);
 
@@ -37,14 +40,12 @@ export function PostForm() {
     setLoading(true);
     setError('');
 
-    // Validaciones básicas
     if (!title.trim() || !content.trim()) {
       setError('El título y contenido son obligatorios');
       setLoading(false);
       return;
     }
 
-    // Convertir tags string a array
     const tagsArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
 
     try {
@@ -52,272 +53,314 @@ export function PostForm() {
         title: title.trim(),
         content: content.trim(),
         category,
-        tags: tagsArray
+        tags: tagsArray,
+        type,
+        region // Enviamos la región
       });
-      
-      // Redirigir al listado de publicaciones después de crear
       navigate('/forum');
     } catch (err) {
-      setError(err.message || 'Error al crear la publicación');
+      setError('Error al crear la publicación');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!user) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.error}>
-          ⚠️ Debes iniciar sesión para crear publicaciones
-        </div>
-      </div>
-    );
-  }
+  if (!user) return <div style={{padding:'50px', textAlign:'center'}}>Acceso denegado.</div>;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h2>📝 Crear Nueva Publicación</h2>
-        <p>Comparte tus ideas, preguntas o noticias con la comunidad</p>
+    <div style={styles.pageContainer}>
+      <div style={styles.editorCard}>
+        
+        <div style={styles.header}>
+          <h2 style={styles.title}>📝 Iniciar Nueva Discusión</h2>
+          <p style={styles.subtitle}>Comparte tus dudas, ideas o noticias con la comunidad.</p>
+        </div>
+
+        {error && <div style={styles.errorAlert}>{error}</div>}
+
+        <form onSubmit={handleSubmit} style={styles.form}>
+          
+          {/* OPCIÓN DE TIPO (SOLO ADMIN) */}
+          {isAdmin && (
+            <div style={styles.adminSection}>
+              <label style={styles.label}>Tipo de Publicación (Admin)</label>
+              <div style={styles.radioGroup}>
+                <label style={styles.radioLabel}>
+                  <input 
+                    type="radio" name="postType" value="forum" 
+                    checked={type === 'forum'} onChange={(e) => setType(e.target.value)}
+                  /> 
+                  💬 Foro Normal
+                </label>
+                <label style={styles.radioLabel}>
+                  <input 
+                    type="radio" name="postType" value="blog" 
+                    checked={type === 'blog'} onChange={(e) => setType(e.target.value)}
+                  /> 
+                  📢 Comunicado Oficial
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* TÍTULO */}
+          <div style={styles.group}>
+            <label style={styles.label}>Título de tu tema</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ej: ¿Cuál es el mejor proveedor de lácteos en Santiago?"
+              style={styles.inputLg}
+              autoFocus
+              disabled={loading}
+            />
+          </div>
+
+          {/* CONTENIDO */}
+          <div style={styles.group}>
+            <label style={styles.label}>Contenido</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Describe tu consulta o tema en detalle..."
+              style={styles.textarea}
+              rows={10}
+              disabled={loading}
+            />
+          </div>
+
+          {/* FILA: CATEGORÍA, REGIÓN Y ETIQUETAS */}
+          <div style={styles.row}>
+            
+            {/* Categoría */}
+            <div style={{...styles.group, flex: 1}}>
+              <label style={styles.label}>Categoría</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                style={styles.select}
+                disabled={loading}
+              >
+                {categories.map(cat => (
+                  <option key={cat._id} value={cat._id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Región (NUEVO) */}
+            <div style={{...styles.group, flex: 1}}>
+              <label style={styles.label}>Región</label>
+              <select
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                style={styles.select}
+                disabled={loading}
+              >
+                {REGIONES.map(reg => (
+                  <option key={reg} value={reg}>{reg}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Etiquetas */}
+            <div style={{...styles.group, flex: 1.5}}>
+              <label style={styles.label}>Etiquetas (Opcional)</label>
+              <input
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="Ej: urgente, dato, oferta"
+                style={styles.input}
+                disabled={loading}
+              />
+              <span style={styles.helper}>Separadas por comas</span>
+            </div>
+          </div>
+
+          {/* FOOTER CON ACCIONES */}
+          <div style={styles.footerActions}>
+            <button 
+              type="button" 
+              onClick={() => navigate('/forum')} 
+              style={styles.btnCancel}
+              disabled={loading}
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              style={styles.btnSubmit}
+              disabled={loading}
+            >
+              {loading ? 'Publicando...' : '🚀 Publicar Tema'}
+            </button>
+          </div>
+
+        </form>
       </div>
-
-      {error && (
-        <div style={styles.error}>
-          ❌ {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <div style={styles.formGroup}>
-          <label htmlFor="title" style={styles.label}>
-            Título *
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Escribe un título descriptivo..."
-            required
-            maxLength={200}
-            style={styles.input}
-            disabled={loading}
-          />
-          <div style={styles.charCount}>
-            {title.length}/200 caracteres
-          </div>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label htmlFor="content" style={styles.label}>
-            Contenido *
-          </label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Escribe el contenido de tu publicación..."
-            required
-            rows={12}
-            style={styles.textarea}
-            disabled={loading}
-          />
-        </div>
-
-        <div style={styles.formGroup}>
-          <label htmlFor="category" style={styles.label}>
-            Categoría *
-          </label>
-          <select
-            id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            required
-            style={styles.select}
-            disabled={loading || categories.length === 0}
-          >
-            {categories.length === 0 ? (
-              <option value="">Cargando categorías...</option>
-            ) : (
-              categories.map(cat => (
-                <option key={cat._id} value={cat._id}>
-                  {cat.name}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label htmlFor="tags" style={styles.label}>
-            Etiquetas
-          </label>
-          <input
-            type="text"
-            id="tags"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="ejemplo: tecnologia, programacion, ayuda (separadas por comas)"
-            style={styles.input}
-            disabled={loading}
-          />
-          <div style={styles.helpText}>
-            Opcional. Separa las etiquetas con comas
-          </div>
-        </div>
-
-        <div style={styles.buttonGroup}>
-          <button 
-            type="button"
-            onClick={() => navigate('/forum')}
-            style={styles.cancelButton}
-            disabled={loading}
-          >
-            ↩️ Cancelar
-          </button>
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={loading ? { ...styles.submitButton, ...styles.submitButtonDisabled } : styles.submitButton}
-          >
-            {loading ? '⏳ Publicando...' : '🚀 Publicar'}
-          </button>
-        </div>
-      </form>
     </div>
   );
 }
 
 const styles = {
-  container: {
-    maxWidth: '800px',
-    margin: '0 auto',
-    padding: '30px 20px',
-    background: '#1a1a1a',
+  pageContainer: {
     minHeight: '100vh',
-    color: 'white',
+    background: 'var(--bg-body)',
+    padding: '40px 20px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start'
+  },
+  editorCard: {
+    width: '100%',
+    maxWidth: '800px',
+    background: 'var(--bg-card)',
+    borderRadius: '12px',
+    padding: '40px',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+    border: '1px solid var(--border)'
   },
   header: {
-    textAlign: 'center',
     marginBottom: '30px',
-    paddingBottom: '20px',
-    borderBottom: '2px solid #333',
+    borderBottom: '1px solid var(--border)',
+    paddingBottom: '20px'
+  },
+  title: {
+    margin: '0 0 10px 0',
+    color: 'var(--text-main)',
+    fontSize: '1.8rem'
+  },
+  subtitle: {
+    margin: 0,
+    color: 'var(--text-muted)'
   },
   form: {
-    background: '#292929',
-    padding: '30px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '25px'
   },
-  formGroup: {
-    marginBottom: '25px',
+  group: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  row: {
+    display: 'flex',
+    gap: '20px',
+    flexWrap: 'wrap'
   },
   label: {
-    display: 'block',
-    marginBottom: '8px',
-    fontWeight: 'bold',
-    color: '#e0e0e0',
-    fontSize: '16px',
+    fontWeight: '600',
+    fontSize: '0.9rem',
+    color: 'var(--text-main)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
   },
   input: {
-    width: '100%',
-    padding: '12px 15px',
-    borderRadius: '8px',
-    border: '2px solid #444',
-    backgroundColor: '#1a1a1a',
-    color: 'white',
-    fontSize: '16px',
-    transition: 'border-color 0.3s',
+    padding: '12px',
+    borderRadius: '6px',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-body)',
+    color: 'var(--text-main)',
+    fontSize: '1rem',
     outline: 'none',
+    transition: 'border-color 0.2s'
+  },
+  inputLg: {
+    padding: '15px',
+    borderRadius: '6px',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-body)',
+    color: 'var(--text-main)',
+    fontSize: '1.2rem',
+    fontWeight: 'bold',
+    outline: 'none',
+    transition: 'border-color 0.2s'
   },
   textarea: {
-    width: '100%',
     padding: '15px',
-    borderRadius: '8px',
-    border: '2px solid #444',
-    backgroundColor: '#1a1a1a',
-    color: 'white',
-    fontSize: '16px',
-    fontFamily: 'inherit',
-    resize: 'vertical',
-    minHeight: '200px',
-    transition: 'border-color 0.3s',
+    borderRadius: '6px',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-body)',
+    color: 'var(--text-main)',
+    fontSize: '1rem',
     outline: 'none',
+    resize: 'vertical',
+    fontFamily: 'inherit',
+    lineHeight: '1.6'
   },
   select: {
-    width: '100%',
-    padding: '12px 15px',
-    borderRadius: '8px',
-    border: '2px solid #444',
-    backgroundColor: '#1a1a1a',
-    color: 'white',
-    fontSize: '16px',
-    cursor: 'pointer',
+    padding: '12px',
+    borderRadius: '6px',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-body)',
+    color: 'var(--text-main)',
+    fontSize: '1rem',
     outline: 'none',
+    cursor: 'pointer'
   },
-  charCount: {
-    textAlign: 'right',
-    fontSize: '14px',
-    color: '#888',
-    marginTop: '5px',
+  helper: {
+    fontSize: '0.8rem',
+    color: 'var(--text-muted)',
+    fontStyle: 'italic'
   },
-  helpText: {
-    fontSize: '14px',
-    color: '#888',
-    marginTop: '5px',
-    fontStyle: 'italic',
-  },
-  buttonGroup: {
-    display: 'flex',
-    gap: '15px',
-    justifyContent: 'flex-end',
-    marginTop: '30px',
-  },
-  cancelButton: {
-    padding: '12px 25px',
-    background: '#555',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    transition: 'background 0.3s',
-  },
-  submitButton: {
-    padding: '12px 30px',
-    background: '#8d8d8d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'background 0.3s',
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-  },
-  error: {
-    background: '#442222',
-    color: '#ff6b6b',
+  
+  adminSection: {
+    background: 'rgba(52, 152, 219, 0.1)',
     padding: '15px',
     borderRadius: '8px',
-    marginBottom: '20px',
-    border: '1px solid #ff6b6b',
-    textAlign: 'center',
+    border: '1px dashed var(--accent)'
   },
-};
+  radioGroup: {
+    display: 'flex',
+    gap: '20px',
+    marginTop: '5px'
+  },
+  radioLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+    cursor: 'pointer',
+    color: 'var(--text-main)'
+  },
 
-// Efectos para mejorar la UX
-styles.input[':focus'] = styles.textarea[':focus'] = styles.select[':focus'] = {
-  borderColor: '#8d8d8d',
-};
-
-styles.cancelButton[':hover'] = {
-  background: '#666',
-};
-
-styles.submitButton[':hover'] = {
-  background: '#575656',
+  footerActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '15px',
+    marginTop: '20px',
+    borderTop: '1px solid var(--border)',
+    paddingTop: '20px'
+  },
+  btnCancel: {
+    padding: '12px 25px',
+    background: 'transparent',
+    color: 'var(--text-muted)',
+    border: '1px solid var(--border)',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    transition: 'all 0.2s'
+  },
+  btnSubmit: {
+    padding: '12px 30px',
+    background: 'var(--accent)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    fontSize: '1rem',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+    transition: 'transform 0.1s'
+  },
+  errorAlert: {
+    padding: '15px',
+    background: 'rgba(231, 76, 60, 0.1)',
+    color: '#e74c3c',
+    borderRadius: '6px',
+    border: '1px solid #e74c3c',
+    marginBottom: '20px'
+  }
 };

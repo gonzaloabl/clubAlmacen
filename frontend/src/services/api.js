@@ -50,14 +50,22 @@ export const userAPI = {
     });
     return handleResponse(response);
   },
-  updateProfile: async (userData) => {
+  // Actualizar perfil propio (Soporta FormData para imágenes)
+  updateProfile: async (formData) => {
+    const token = localStorage.getItem('token');
+    
+    // Verificamos si es FormData (archivo) o JSON normal
+    const isFormData = formData instanceof FormData;
+
     const response = await fetch(`${API_URL}/users/profile`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeader(),
+        // ⚠️ TRUCO: Si es FormData, NO ponemos Content-Type (el navegador lo pone solo)
+        // Si es JSON, ponemos application/json
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify(userData),
+      body: isFormData ? formData : JSON.stringify(formData),
     });
     return handleResponse(response);
   },
@@ -69,34 +77,46 @@ export const userAPI = {
     });
     return handleResponse(response);
   },
-};
-
-// API de carrito
-export const cartAPI = {
-  getCart: async () => {
-    const response = await fetch(`${API_URL}/cart`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeader(),
-      },
+  // Obtener perfil público por ID
+  getPublicProfile: async (userId) => {
+    const response = await fetch(`${API_URL}/users/public/${userId}`, {
+      headers: { 'Content-Type': 'application/json' },
     });
     return handleResponse(response);
   },
 
-  addToCart: async (productId, quantity = 1) => {
-    const response = await fetch(`${API_URL}/cart`, {
+  // Obtener lista pública de locatarios
+  getLocatarios: async () => {
+    const response = await fetch(`${API_URL}/users/public/locatarios`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse(response);
+  },
+};
+
+
+
+// --- NUEVO: API DE BLOG OFICIAL ---
+export const blogAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_URL}/blog`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse(response);
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/blog`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeader(),
       },
-      body: JSON.stringify({ productId, quantity }),
+      body: JSON.stringify(data),
     });
     return handleResponse(response);
   },
-
-  removeFromCart: async (productId) => {
-    const response = await fetch(`${API_URL}/cart/${productId}`, {
+  delete: async (id) => {
+    const response = await fetch(`${API_URL}/blog/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -104,11 +124,11 @@ export const cartAPI = {
       },
     });
     return handleResponse(response);
-  },
+  }
 };
 
-// API de productos
 export const productAPI = {
+  // Crear producto (Backend asigna el proveedor automáticamente)
   createProduct: async (productData) => {
     const response = await fetch(`${API_URL}/products`, {
       method: 'POST',
@@ -121,6 +141,7 @@ export const productAPI = {
     return handleResponse(response);
   },
 
+  // Obtener todos (Mercado global)
   getAllProducts: async () => {
     const response = await fetch(`${API_URL}/products`, {
       headers: {
@@ -129,6 +150,27 @@ export const productAPI = {
     });
     return handleResponse(response);
   },
+
+  // Obtener MIS productos (Dashboard Proveedor)
+  getMyProducts: async () => {
+    const response = await fetch(`${API_URL}/products/mine`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse(response);
+  },
+
+  // Obtener productos de un proveedor (Catálogo Público)
+  getProductsByProvider: async (providerId) => {
+    const response = await fetch(`${API_URL}/products/provider/${providerId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return handleResponse(response);
+  }
 };
 
 export const categoryAPI = {
@@ -289,4 +331,5 @@ export default {
   user: userAPI,
   category: categoryAPI,
   post: postAPI,
+  blog: blogAPI,
 };

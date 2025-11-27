@@ -12,6 +12,11 @@ import { NavBar } from './components/common/NavBar.jsx';
 import { Noticias } from './components/common/Noticias.jsx';
 import { TestRoles } from './components/TestRoles';
 import { ProvidersDirectory } from './components/pages/ProvidersDirectory.jsx';
+import { ProviderProfile } from './components/pages/ProviderProfile.jsx';
+import { UsefulLinks } from './components/pages/UsefulLinks';
+import { LocatariosDirectory } from './components/pages/LocatariosDirectory.jsx';
+import { BlogList } from './components/pages/BlogList.jsx';
+import { Footer } from './components/common/Footer.jsx';
 
 // 🆕 IMPORTAR DASHBOARDS
 import { Dashboard } from './components/Dashboard.jsx';
@@ -118,9 +123,12 @@ function PublicRoute({ children }) {
 // Layout principal con navbar
 function MainLayout({ children }) {
   return (
-    <div style={{ paddingTop: '80px' }}>  {/* ✅ Espacio para el navbar fijo */}
-      <NavBar />  {/* ✅ Navbar en todas las páginas */}
-      {children}
+    <div style={{ paddingTop: '80px', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <NavBar />
+      <div style={{ flex: 1 }}>
+        {children}
+      </div>
+      <Footer /> {/* 🆕 AQUÍ VA EL FOOTER */}
     </div>
   );
 }
@@ -235,6 +243,14 @@ function AppContent() {
       } />
 
       <Route path="/complete-google-registration" element={<GoogleCompleteRegistration />} />
+
+      <Route path="/proveedor/:id" element={<MainLayout><ProviderProfile /></MainLayout>} />
+
+      <Route path="/herramientas" element={<MainLayout><UsefulLinks /></MainLayout>} />
+
+      <Route path="/comercios" element={<MainLayout><LocatariosDirectory /></MainLayout>} />
+
+      <Route path="/muro" element={<MainLayout><BlogList /></MainLayout>} />
       
       {/* 🆕 RUTA DE TEST (puedes quitarla en producción) */}
       <Route path="/test-roles" element={
