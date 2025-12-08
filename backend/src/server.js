@@ -8,10 +8,11 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import cron from 'node-cron';  
+import swaggerUi from 'swagger-ui-express';
+import { swaggerDocs } from './config/swagger.js';
 import { fileURLToPath } from 'url';               
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
-import cartRoutes from './routes/cartRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import postRoutes from './routes/postRoutes.js';
@@ -53,13 +54,12 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ Conectado a MongoDB'))
   .catch(err => console.error('❌ Error de conexión:', err));
 
-
-// Ruta de prueba
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+console.log('📄 Documentación Swagger disponible en: http://localhost:5000/api-docs');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/auth/google/complete', googleCompleteRoutes);
-app.use('/api/cart', cartRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes); 

@@ -48,21 +48,6 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true, //para los usuarios locales
   },
-  cart: {
-    type: [
-      {
-        product: { 
-          type: mongoose.Schema.Types.ObjectId, 
-          ref: 'Product' 
-        },
-        quantity: { 
-          type: Number, 
-          default: 1 
-        }
-      }
-    ],
-    default: []
-  },
   googleId: {
       type: String,
       sparse: true  // Permite tener null para usuarios locales
