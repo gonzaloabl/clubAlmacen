@@ -1,167 +1,108 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useRole } from '../../hooks/useRole'; // Asegúrate de importar esto si lo usas
-import { DashboardLayout } from '../layouts/DashboardLayout';
+import { productAPI } from '../../services/api'; // Importar API
 import { ProfileSettings } from './ProfileSettings';
-import { productAPI } from '../../services/api';
+import { KarmaWidget } from '../common/KarmaWidget';
+import { ProductManager } from '../products/ProductManager';
+import styles from './ProveedorDashboard.module.css';
 
 export function ProveedorDashboard() {
   const { user } = useAuth();
-  // Eliminamos isProveedor si no lo usas para renderizar condicionalmente todo el componente,
-  // o lo dejas si quieres protegerlo doblemente.
-  // const { isProveedor } = useRole(); 
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('resumen');
   
-  const [activeTab, setActiveTab] = useState('overview');
-  const [productos, setProductos] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  
-  // Formulario Producto
-  const [newProduct, setNewProduct] = useState({ nombre: '', precio: '', stock: '', category: 'otros' });
+  // Estado para estadísticas
+  const [stats, setStats] = useState({ productCount: 0 });
 
-  // Cargar productos solo cuando se necesita
+  // Cargar estadísticas reales
   useEffect(() => {
-    if (activeTab === 'products' || activeTab === 'overview') {
-      fetchMyProducts();
-    }
-  }, [activeTab]);
+    const loadStats = async () => {
+        try {
+            const products = await productAPI.getMyProducts();
+            setStats({ productCount: products.length });
+        } catch (error) {
+            console.error("Error cargando estadísticas", error);
+        }
+    };
+    loadStats();
+  }, [activeTab]); // Recargar al cambiar de tab por si agregan productos
 
-  const fetchMyProducts = async () => {
-    setLoadingProducts(true);
-    try {
-      const data = await productAPI.getMyProducts();
-      setProductos(data || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingProducts(false);
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'resumen':
+        return (
+          <div className={styles.dashboardHome}>
+            <KarmaWidget user={user} />
+
+            <div className={styles.statsRow}>
+              <div className={styles.statCard}>
+                {/* Muestra el contador real */}
+                <span className={styles.statNumber}>{stats.productCount}</span>
+                <span className={styles.statLabel}>Productos Activos</span>
+              </div>
+              <div className={styles.statCard}>
+                <span className={styles.statNumber}>--</span>
+                <span className={styles.statLabel}>Vistas de Perfil</span>
+              </div>
+            </div>
+
+            <h4 className={styles.sectionTitle}>Gestión Rápida</h4>
+            <div className={styles.quickActionsGrid}>
+               <div className={styles.actionCard} onClick={() => setActiveTab('productos')}>
+                <span className={styles.actionIcon}>📦</span>
+                <span>Subir Producto</span>
+              </div>
+              <div className={styles.actionCard} onClick={() => navigate('/forum')}>
+                <span className={styles.actionIcon}>📢</span>
+                <span>Ir al Foro</span>
+              </div>
+            </div>
+
+            <div className={styles.infoBox} style={{marginTop: '30px'}}>
+              <h4>💡 Consejo</h4>
+              <p>Los proveedores con fotos reales en sus productos reciben 3 veces más contactos.</p>
+            </div>
+          </div>
+        );
+
+      case 'productos':
+        return (
+          <div className={styles.dashboardHome}>
+             {/* Componente de Gestión Completo */}
+             <ProductManager /> 
+          </div>
+        );
+
+      case 'perfil':
+        return <ProfileSettings />;
+
+      default:
+        return <div>En construcción</div>;
     }
   };
-
-  const handleAddProduct = async (e) => {
-    e.preventDefault();
-    if (newProduct.nombre && newProduct.precio) {
-      try {
-        await productAPI.createProduct({
-            name: newProduct.nombre,
-            price: Number(newProduct.precio),
-            stock: Number(newProduct.stock),
-            category: newProduct.category
-        });
-        alert('✅ Producto publicado');
-        setNewProduct({ nombre: '', precio: '', stock: '', category: 'otros' });
-        fetchMyProducts();
-      } catch (error) {
-        alert('Error al crear');
-      }
-    }
-  };
-
-  const sidebarItems = [
-    { label: 'Resumen', icon: '📊', onClick: () => setActiveTab('overview'), isActive: activeTab === 'overview' },
-    { label: 'Perfil Empresa', icon: '⚙️', onClick: () => setActiveTab('profile'), isActive: activeTab === 'profile' },
-    { label: 'Mis Productos', icon: '📦', onClick: () => setActiveTab('products'), isActive: activeTab === 'products' },
-    { label: 'Ir al Directorio', icon: '👀', path: '/directorio' },
-  ];
 
   return (
-    <DashboardLayout 
-      title="Panel de Proveedor"
-      subtitle={`Gestiona tu catálogo: ${user?.businessName || user?.name}`}
-      sidebarItems={sidebarItems}
-    >
-      
-      {/* --- VISTA GENERAL --- */}
-      {activeTab === 'overview' && (
-        <div>
-          <h2 style={{color: 'var(--text-main)'}}>Estado de tu Catálogo</h2>
-          <div style={styles.statsGrid}>
-             <div style={styles.card}>
-                <span style={{fontSize: '2rem'}}>📦</span>
-                <h3>{productos.length}</h3>
-                <p>Productos Activos</p>
-             </div>
-             <div style={styles.card}>
-                <span style={{fontSize: '2rem'}}>📍</span>
-                <h3>{user?.region || 'Nacional'}</h3>
-                <p>Zona de Cobertura</p>
-             </div>
-          </div>
-          <div style={styles.noticeBox}>
-             <strong>💡 Consejo:</strong> Mantén tu catálogo actualizado. Los locatarios ven estos productos en el Directorio Público.
-          </div>
+    <div className={styles.container}>
+      <aside className={styles.sidebar}>
+        <div className={styles.userInfo}>
+           <div className={styles.avatarPlaceholder} style={{backgroundColor: '#2ecc71'}}>
+              {user?.name?.charAt(0)}
+           </div>
+           <p className={styles.userName}>{user?.name}</p>
+           <span className={styles.userRole}>Proveedor</span>
         </div>
-      )}
+        
+        <nav className={styles.nav}>
+          <button onClick={() => setActiveTab('resumen')} className={activeTab === 'resumen' ? styles.active : ''}>📊 Resumen</button>
+          <button onClick={() => setActiveTab('productos')} className={activeTab === 'productos' ? styles.active : ''}>📦 Mis Productos</button>
+          <button onClick={() => setActiveTab('perfil')} className={activeTab === 'perfil' ? styles.active : ''}>⚙️ Perfil Empresa</button>
+        </nav>
+      </aside>
 
-      {activeTab === 'profile' && <ProfileSettings />}
-
-      {/* --- GESTIÓN DE PRODUCTOS --- */}
-      {activeTab === 'products' && (
-        <div>
-          <h2 style={{color: 'var(--text-main)'}}>Gestión de Inventario</h2>
-          
-          {/* Formulario */}
-          <div style={styles.formBox}>
-            <h4 style={{marginTop:0, color:'var(--text-main)'}}>Publicar Nuevo Item</h4>
-            <form onSubmit={handleAddProduct} style={{display:'flex', gap:'10px', flexWrap:'wrap'}}>
-                <input 
-                    type="text" placeholder="Nombre Producto" style={styles.input}
-                    value={newProduct.nombre}
-                    onChange={e => setNewProduct({...newProduct, nombre: e.target.value})}
-                    required
-                />
-                <input 
-                    type="number" placeholder="Precio" style={{...styles.input, width:'100px'}}
-                    value={newProduct.precio}
-                    onChange={e => setNewProduct({...newProduct, precio: e.target.value})}
-                    required
-                />
-                <input 
-                    type="number" placeholder="Stock" style={{...styles.input, width:'80px'}}
-                    value={newProduct.stock}
-                    onChange={e => setNewProduct({...newProduct, stock: e.target.value})}
-                />
-                <select 
-                    style={styles.input}
-                    value={newProduct.category}
-                    onChange={e => setNewProduct({...newProduct, category: e.target.value})}
-                >
-                    <option value="alimentos">Alimentos</option>
-                    <option value="bebidas">Bebidas</option>
-                    <option value="limpieza">Limpieza</option>
-                    <option value="otros">Otros</option>
-                </select>
-                <button type="submit" style={styles.btnAction}>Publicar</button>
-            </form>
-          </div>
-
-          {/* Lista */}
-          <div style={styles.gridProducts}>
-              {productos.length === 0 ? <p style={{color:'var(--text-muted)'}}>Tu catálogo está vacío.</p> : 
-               productos.map(prod => (
-                  <div key={prod._id} style={styles.productCard}>
-                      <div style={{fontWeight:'bold', color:'var(--text-main)'}}>{prod.name}</div>
-                      <div style={{color:'var(--text-muted)', fontSize:'0.85rem'}}>
-                          {prod.category} • Stock: {prod.stock}
-                      </div>
-                      <div style={{color:'var(--accent)', fontWeight:'bold', marginTop:'5px'}}>${prod.price}</div>
-                  </div>
-               ))
-              }
-          </div>
-        </div>
-      )}
-
-    </DashboardLayout>
+      <main className={styles.mainContent}>
+        {renderContent()}
+      </main>
+    </div>
   );
 }
-
-const styles = {
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' },
-  card: { padding: '20px', border: '1px solid var(--border)', borderRadius: '10px', textAlign: 'center', background: 'var(--bg-card)' },
-  noticeBox: { padding: '15px', background: 'rgba(52, 152, 219, 0.1)', borderLeft: '4px solid var(--accent)', color: 'var(--text-main)', borderRadius: '4px' },
-  formBox: { padding: '20px', background: 'var(--bg-card)', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--border)' },
-  input: { padding: '10px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-body)', color: 'var(--text-main)', flex: 1 },
-  btnAction: { padding: '10px 20px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' },
-  gridProducts: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '15px' },
-  productCard: { padding: '15px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-card)' }
-};

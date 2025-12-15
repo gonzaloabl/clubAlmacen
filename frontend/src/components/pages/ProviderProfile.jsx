@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { userAPI, productAPI } from '../../services/api';
 
 export function ProviderProfile() {
@@ -11,11 +11,8 @@ export function ProviderProfile() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // 1. Cargar datos del proveedor
         const userData = await userAPI.getPublicProfile(id);
         setProvider(userData);
-
-        // 2. Cargar sus productos
         const prodData = await productAPI.getProductsByProvider(id);
         setProducts(prodData);
       } catch (error) {
@@ -32,8 +29,7 @@ export function ProviderProfile() {
 
   return (
     <div style={styles.container}>
-      
-      {/* CABECERA DEL PERFIL */}
+      {/* CABECERA */}
       <div style={styles.header}>
         <div style={styles.headerContent}>
           <div style={styles.avatar}>
@@ -57,7 +53,7 @@ export function ProviderProfile() {
         </div>
       </div>
 
-      {/* CATÁLOGO DE PRODUCTOS */}
+      {/* CATÁLOGO */}
       <div style={styles.content}>
         <h2 style={styles.sectionTitle}>Catálogo de Productos ({products.length})</h2>
         
@@ -67,13 +63,24 @@ export function ProviderProfile() {
           <div style={styles.grid}>
             {products.map(prod => (
               <div key={prod._id} style={styles.card}>
-                <div style={styles.prodImage}>📦</div> {/* Placeholder */}
+                
+                {/* 👇 AQUÍ ESTÁ EL CAMBIO DE LA IMAGEN */}
+                <div style={styles.prodImage}>
+                   {prod.image ? (
+                     <img src={prod.image} alt={prod.name} style={{width:'100%', height:'100%', objectFit:'cover'}} />
+                   ) : (
+                     <span style={{fontSize:'3rem'}}>📦</span>
+                   )}
+                </div>
+
                 <div style={styles.cardBody}>
                    <h3 style={styles.prodName}>{prod.name}</h3>
                    <p style={styles.prodCat}>{prod.category}</p>
                    <div style={styles.priceRow}>
-                      <span style={styles.price}>${prod.price}</span>
-                      <span style={styles.stock}>{prod.stock > 0 ? 'Disponible' : 'Agotado'}</span>
+                      <span style={styles.price}>${prod.price.toLocaleString()}</span>
+                      <span style={styles.stock}>
+                          {prod.stock > 0 ? 'Disponible' : 'Agotado'}
+                      </span>
                    </div>
                 </div>
               </div>
@@ -104,8 +111,8 @@ const styles = {
   emptyState: { textAlign: 'center', padding: '40px', color: 'var(--text-muted)', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' },
   
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '25px' },
-  card: { background: 'var(--bg-card)', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border)', transition: 'transform 0.2s' },
-  prodImage: { height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' },
+  card: { background: 'var(--bg-card)', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border)', transition: 'transform 0.2s', height: '100%' }, // height 100% fix
+  prodImage: { height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }, // Quitamos font-size fijo aquí para que la imagen ocupe bien
   cardBody: { padding: '15px' },
   prodName: { margin: '0 0 5px 0', fontSize: '1.1rem', color: 'var(--text-main)' },
   prodCat: { fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'capitalize', marginBottom: '10px' },

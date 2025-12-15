@@ -21,8 +21,11 @@ import passport, { configurePassport } from './config/passport.js';
 import adminRoutes from './routes/adminRoutes.js';
 import googleCompleteRoutes from './routes/googleCompleteRoutes.js';
 import newsRoutes from './routes/newsRoutes.js'; // Importamos la nueva ruta
+import { seedCategories } from './scripts/seedCategories.js';
 import { fetchAndSaveNews } from './scripts/fetchNews.js'; // Importamos la función del script
 import blogRoutes from './routes/blogRoutes.js';
+import systemRoutes from './routes/systemRoutes.js';
+import ticketRoutes from './routes/ticketRoutes.js';
 
 
 
@@ -51,7 +54,12 @@ app.use((req, res, next) => {
 
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ Conectado a MongoDB'))
+  .then(async () => {
+    console.log('✅ Conectado a MongoDB');
+    
+    // Aquí ocurre la magia automática al iniciar
+    await seedCategories(); 
+  })
   .catch(err => console.error('❌ Error de conexión:', err));
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
@@ -67,6 +75,8 @@ app.use('/api/posts', postRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/blog', blogRoutes);
+app.use('/api/system', systemRoutes);
+app.use('/api/tickets', ticketRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 

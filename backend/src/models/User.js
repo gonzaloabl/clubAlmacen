@@ -15,10 +15,14 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: function() {
-    // Solo requerido para autenticación local, no para Google
-    return this.oauthProvider === 'local';
-  },
+      // Solo requerido para autenticación local, no para Google
+      return this.oauthProvider === 'local';
+    },
     minlength: [6, "⚠️ Mínimo 6 caracteres"]
+  },
+  isActive: { 
+    type: Boolean, 
+    default: true  // Por defecto, todos nacen activos
   },
   role: {
     type: String,
@@ -35,7 +39,7 @@ const userSchema = new mongoose.Schema({
     ],
     default: null
   },
-  // 🆕 Región (Solo para Admin Regional)
+  // 🆕 Región
   region: {
     type: String,
     default: null 
@@ -46,11 +50,11 @@ const userSchema = new mongoose.Schema({
   },
   registrationComplete: {
     type: Boolean,
-    default: true, //para los usuarios locales
+    default: true,
   },
   googleId: {
       type: String,
-      sparse: true  // Permite tener null para usuarios locales
+      sparse: true
   },
   avatar: {
       type: String,
@@ -65,34 +69,19 @@ const userSchema = new mongoose.Schema({
       enum: ['google', 'local'],
       default: 'local'
   },
-  phone: { 
-    type: String, 
-    default: '' 
-  },
-  address: { 
-    type: String, 
-    default: '' 
-  },
-  businessName: { 
-    type: String, 
-    default: '' 
-  }, // Ej: "Almacén Don Pepe"
-  businessDescription: { 
-    type: String, 
-    default: '' 
-  }, // Ej: "Venta de abarrotes..."
-  website: { 
-    type: String, 
-    default: '' 
-  },
-  whatsapp: {
-     type: String,
-    default: '' 
-  },
-  avatar: { 
-    type: String, 
-    default: '' 
-  },
+  // Perfil de Negocio
+  phone: { type: String, default: '' },
+  address: { type: String, default: '' },
+  businessName: { type: String, default: '' }, 
+  businessDescription: { type: String, default: '' }, 
+  website: { type: String, default: '' },
+  whatsapp: { type: String, default: '' },
+  
+  // 🎮 GAMIFICACIÓN: Nuevo campo Karma
+  karma: {
+    type: Number,
+    default: 0
+  }
   
 }, { timestamps: true });
 

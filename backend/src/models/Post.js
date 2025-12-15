@@ -7,7 +7,13 @@ const commentSchema = new mongoose.Schema({
     required: true
   },
   content: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  
+  // ❤️ NUEVO: Likes en comentarios (Híbrido)
+  likes: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  }]
 });
 
 const postSchema = new mongoose.Schema({
@@ -22,6 +28,10 @@ const postSchema = new mongoose.Schema({
     required: [true, "El contenido es obligatorio"],
     trim: true
   },
+  image: {
+    type: String,
+    default: null
+  },
   author: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -34,15 +44,26 @@ const postSchema = new mongoose.Schema({
   },
   tags: [{ type: String, trim: true }],
   
-  // 🆕 NUEVO CAMPO: REGIÓN
+  // REGIÓN
   region: {
     type: String,
     default: 'Nacional',
     index: true
   },
 
-  // Campos de interacción
-  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // 🗳️ SISTEMA DE VOTACIÓN (Reemplaza a los likes simples)
+  votes: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    value: { type: Number, enum: [1, -1] } // 1 = Upvote, -1 = Downvote
+  }],
+
+  // ⚡ SCORE CACHEADO (Upvotes - Downvotes) para ordenar rápido
+  score: { 
+    type: Number, 
+    default: 0 
+  },
+
+  // Comentarios (usando el schema de arriba que ahora tiene likes)
   comments: [commentSchema],
   
   // Campos de control
@@ -63,7 +84,8 @@ const postSchema = new mongoose.Schema({
 
 // Índices
 postSchema.index({ title: 'text', content: 'text' });
+// ⚡ Índice para ordenar por popularidad (score)
+postSchema.index({ score: -1, createdAt: -1 });
 postSchema.index({ category: 1, createdAt: -1 });
-
 
 export default mongoose.model('Post', postSchema);

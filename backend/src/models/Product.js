@@ -1,32 +1,41 @@
 import mongoose from 'mongoose';
 
 const productSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "❌ El nombre es obligatorio"]
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: [0.01, "💸 El precio debe ser mayor a $0.01"]
-  },
-  description: String,
-  image: String,
-  stock: {
-    type: Number,
-    default: 0
-  },
-  category: {
-    type: String,
-    required: true,
-    enum: ["electronica", "ropa", "hogar", "otros", "alimentos", "bebidas", "limpieza"] // Agregué rubros más comunes
-  },
-  
-  // 🆕 NUEVO CAMPO: DUEÑO DEL PRODUCTO
   provider: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  name: {
+    type: String,
+    required: [true, "El nombre del producto es obligatorio"],
+    trim: true
+  },
+  description: {
+    type: String,
+    required: [true, "La descripción es obligatoria"]
+  },
+  price: {
+    type: Number,
+    required: [true, "El precio es obligatorio"],
+    min: 0
+  },
+  stock: {
+    type: Number,
+    default: 1,
+    min: 0
+  },
+  image: {
+    type: String, // Guardaremos la URL de la imagen subida
+    default: null
+  },
+  category: {
+    type: String,
+    default: 'General' // Podríamos usar el modelo Category, pero para empezar simple usamos string
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, { timestamps: true });
 

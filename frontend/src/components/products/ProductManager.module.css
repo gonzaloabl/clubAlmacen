@@ -1,0 +1,97 @@
+.managerContainer {
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.btnAdd {
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Formulario */
+.formCard {
+    background: var(--bg-card);
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 30px;
+}
+
+.formGroup { margin-bottom: 15px; }
+.formGroup input, .formGroup textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+.row { display: flex; gap: 15px; margin-bottom: 15px; }
+.row input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; }
+
+.previewImg { width: 100px; height: 100px; object-fit: cover; margin-top: 10px; border-radius: 8px; }
+
+.btnSave {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* Grid de Productos */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.productCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.2s;
+}
+
+.productCard:hover { transform: translateY(-3px); }
+
+.imgContainer {
+    height: 150px;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.imgContainer img { width: 100%; height: 100%; object-fit: cover; }
+.placeholderImg { font-size: 3rem; }
+
+.cardInfo { padding: 15px; }
+.cardInfo h5 { margin: 0 0 5px 0; font-size: 1rem; }
+.price { color: #27ae60; font-weight: bold; font-size: 1.1rem; margin: 0; }
+.stock { color: var(--text-muted); font-size: 0.8rem; margin: 5px 0 15px 0; }
+
+.btnDelete {
+    background-color: transparent;
+    border: 1px solid #e74c3c;
+    color: #e74c3c;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    width: 100%;
+}
+.btnDelete:hover { background-color: #e74c3c; color: white; }
+
+.emptyState { text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 40px; }

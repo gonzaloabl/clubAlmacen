@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { postAPI } from '../../services/api';
 import { formatRelativeTime } from '../../utils/helpers';
-import { UserAvatar } from '../common/UserAvatar'; // 1. Importamos el componente
+import { UserAvatar } from '../common/UserAvatar';
+import { getKarmaRank } from '../../utils/karma';
 import styles from './PostDetail.module.css';
 
 export function PostDetail() {
@@ -16,9 +17,9 @@ export function PostDetail() {
   const [commentText, setCommentText] = useState('');
   const hasLoaded = useRef(false);
 
-  // Cargar Datos
   const loadPostData = async () => {
     try {
+      // Registrar vista y obtener datos en paralelo
       const [viewRes, postData] = await Promise.all([
         postAPI.registerView(id),
         postAPI.getById(id)
@@ -38,15 +39,42 @@ export function PostDetail() {
     }
   }, [id]);
 
-  // --- ACCIONES ---
-  const handleLike = async () => {
-    if (!user) return alert('Debes iniciar sesión para dar like');
+  // --- ACCIONES NUEVAS ---
+
+  // 1. VOTAR EN EL POST PRINCIPAL (Up/Down)
+  const handleVote = async (value) => {
+    if (!user) return alert('Debes iniciar sesión para votar');
     try {
-      await postAPI.like(post._id);
-      const updated = await postAPI.getById(id);
-      setPost(updated);
+      // Optimismo UI: Podríamos actualizar el estado localmente antes, 
+      // pero por seguridad esperamos la respuesta del backend que ya calcula la matemática.
+      const response = await postAPI.vote(post._id, value);
+      
+      // Actualizamos solo los campos necesarios del post
+      setPost(prev => ({ 
+          ...prev, 
+          score: response.score, 
+          votes: response.votes 
+      }));
     } catch (error) {
-      console.error("Error like:", error);
+      console.error("Error al votar:", error);
+    }
+  };
+
+  // 2. LIKE EN COMENTARIO
+  const handleCommentLike = async (commentId) => {
+    if (!user) return alert('Debes iniciar sesión');
+    try {
+      const updatedLikes = await postAPI.likeComment(post._id, commentId);
+      
+      // Actualizamos el comentario específico en el estado
+      setPost(prev => ({
+        ...prev,
+        comments: prev.comments.map(c => 
+          c._id === commentId ? { ...c, likes: updatedLikes } : c
+        )
+      }));
+    } catch (error) {
+      console.error("Error like comentario:", error);
     }
   };
 
@@ -96,95 +124,139 @@ export function PostDetail() {
     }
   };
 
-  // --- COMPONENTE INTERNO DE MENSAJE ---
-  const ThreadMessage = ({ author, content, date, role, isOriginalPost, authorId }) => (
-    <div className={styles.messageCard}>
-      
-      {/* LADO IZQUIERDO: AUTOR */}
-      <div className={styles.authorSide}>
+  // --- COMPONENTE INTERNO (ACTUALIZADO) ---
+  const ThreadMessage = ({ data, isOriginalPost }) => {
+    const author = isOriginalPost ? data.author : data.user;
+
+    // 🆕 Obtener Karma y Rango
+    const authorKarma = author?.karma || 0;
+    const rank = getKarmaRank(authorKarma);
+    
+    // Lógica para saber mi voto actual (si soy el post original)
+    const myVote = isOriginalPost 
+        ? data.votes?.find(v => v.user === user?._id)?.value 
+        : 0;
+
+    return (
+      <div className={styles.messageCard}>
         
-        {/* ✅ AQUÍ USAMOS EL COMPONENTE (Sin código duplicado) */}
-        <div style={{display: 'flex', justifyContent: 'center', marginBottom: '10px'}}>
-           <UserAvatar user={author} size="80px" fontSize="2rem" />
+        {/* LADO IZQUIERDO: Votación (Solo Post) o Avatar */}
+        <div className={styles.leftSide}>
+            
+            {/* Si es Post Original -> Votación Estilo Reddit */}
+            {isOriginalPost ? (
+                <div className={styles.voteContainer}>
+                    <button 
+                        className={`${styles.voteBtn} ${myVote === 1 ? styles.upActive : ''}`}
+                        onClick={() => handleVote(1)}
+                    >
+                        ▲
+                    </button>
+                    <span className={`${styles.score} ${myVote === 1 ? styles.orange : (myVote === -1 ? styles.blue : '')}`}>
+                        {data.score || 0}
+                    </span>
+                    <button 
+                        className={`${styles.voteBtn} ${myVote === -1 ? styles.downActive : ''}`}
+                        onClick={() => handleVote(-1)}
+                    >
+                        ▼
+                    </button>
+                </div>
+            ) : (
+                // Si es comentario -> Avatar normal
+                <div style={{marginBottom: '10px'}}>
+                   <UserAvatar user={author} size="50px" fontSize="1.2rem" />
+                </div>
+            )}
+
+            {/* Avatar del autor del post (si es original, va debajo de los votos o al lado en mobile) */}
+            {isOriginalPost && (
+                <div className={styles.originalPosterAvatar}>
+                    <UserAvatar user={author} size="60px" fontSize="1.5rem" />
+                </div>
+            )}
         </div>
 
-        <span className={styles.authorName}>{author?.name || 'Usuario'}</span>
-        <span className={styles.authorRole}>
-            {author?.role === 'admin' ? `Admin ${author.adminRole || ''}` : (role || 'Miembro')}
-        </span>
-        
-        {author?.region && (
-            <div style={{fontSize:'0.75rem', marginTop:'5px', color:'var(--text-muted)'}}>
-                📍 {author.region}
-            </div>
-        )}
-      </div>
+        {/* LADO DERECHO: CONTENIDO */}
+        <div className={styles.contentSide}>
+          <div className={styles.messageMeta}>
+            <span className={styles.authorName}>
+                {author?.name || 'Usuario'} 
+                {/* 🏆 Insignia de Rango al lado del nombre */}
+                {rank && <span className={styles.karmaBadge} style={{backgroundColor: rank.color}}>
+                    {rank.icon} {rank.name}
+                </span>}
 
-      {/* LADO DERECHO: CONTENIDO */}
-      <div className={styles.contentSide}>
-        <div className={styles.messageMeta}>
-          <span>{formatRelativeTime(date)}</span>
-          <span>#{isOriginalPost ? '1' : ''}</span>
-        </div>
-        
-        <div className={styles.messageBody}>
-          {content}
-        </div>
-        
-        <div className={styles.messageActions}>
-          {isOriginalPost && (
-             <button className={styles.actionBtn} onClick={handleLike}>
-               {post.likes?.includes(user?._id) ? '❤️' : '🤍'} {post.likes?.length || 0} Me gusta
-             </button>
+                {/* Badges de Role (se mantienen) */}
+                {author?.role === 'admin' && <span className={styles.badgeAdmin}>ADMIN</span>}
+                {author?.role === 'proveedor' && <span className={styles.badgeProv}>PROV</span>}
+            </span>
+            <span className={styles.date}>
+                {formatRelativeTime(data.createdAt)}
+            </span>
+          </div>
+          
+          <div className={styles.messageBody}>
+            {data.content}
+          </div>
+
+          {isOriginalPost && data.image && (
+              <div className={styles.messageImageContainer}>
+                  <img src={data.image} alt="Adjunto" className={styles.messageImage} onClick={() => window.open(data.image, '_blank')} />
+              </div>
           )}
           
-          <button className={styles.actionBtn} onClick={handleReport}>🚩 Reportar</button>
+          <div className={styles.messageActions}>
+            
+            {/* Si es comentario -> Botón de Like */}
+            {!isOriginalPost && (
+                <button className={styles.actionBtn} onClick={() => handleCommentLike(data._id)}>
+                    {data.likes?.includes(user?._id) ? '❤️' : '🤍'} {data.likes?.length || 0}
+                </button>
+            )}
+            
+            <button className={styles.actionBtn} onClick={() => isOriginalPost ? handleReport() : null}>
+                🚩 Reportar
+            </button>
 
-          {isOriginalPost && canDelete(authorId) && (
-             <button className={styles.actionBtn} style={{color:'var(--danger)'}} onClick={handleDelete}>
-                🗑️ Borrar
-             </button>
-          )}
+            {isOriginalPost && canDelete(author._id) && (
+               <button className={styles.actionBtn} style={{color:'var(--danger)'}} onClick={handleDelete}>
+                    🗑️ Borrar
+               </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) return <div style={{padding:'50px', textAlign:'center'}}>Cargando...</div>;
   if (!post) return <div style={{padding:'50px', textAlign:'center'}}>No encontrado.</div>;
 
   return (
     <div className={styles.container}>
+      {/* ... Header igual ... */}
       <div className={styles.threadHeader}>
         <div className={styles.headerContent}>
-          <span className={styles.categoryLabel}>📁 {post.category?.name || 'General'}</span>
+          <span className={styles.categoryLabel}>📁 {post.category?.name}</span>
           <h1 className={styles.threadTitle}>{post.title}</h1>
-          {post.region && post.region !== 'Nacional' && (
-              <span style={{fontSize:'0.9rem', opacity: 0.8, display:'block', marginTop:'5px'}}>📍 Región: {post.region}</span>
-          )}
         </div>
       </div>
 
       <div className={styles.layoutGrid}>
         <div className={styles.threadColumn}>
+          
           {/* Post Principal */}
           <ThreadMessage 
-            author={post.author}
-            role={post.author?.role}
-            content={post.content}
-            date={post.createdAt}
-            isOriginalPost={true}
-            authorId={post.author?._id} 
+            data={post} 
+            isOriginalPost={true} 
           />
 
           {/* Comentarios */}
-          {post.comments?.map((comment, index) => (
+          {post.comments?.map((comment) => (
             <ThreadMessage 
-              key={index}
-              author={comment.user}
-              role={comment.user?.role}
-              content={comment.content}
-              date={comment.createdAt}
+              key={comment._id}
+              data={comment}
               isOriginalPost={false}
             />
           ))}
@@ -210,16 +282,10 @@ export function PostDetail() {
 
         {/* Sidebar */}
         <aside className={styles.sidebar}>
-          <div className={styles.widget} onClick={() => navigate('/forum')} style={{cursor:'pointer', fontWeight:'bold', color:'var(--accent)'}}>
+           {/* ... Igual que antes ... */}
+           <div className={styles.widget} onClick={() => navigate('/forum')} style={{cursor:'pointer'}}>
              ← Volver al Foro
-          </div>
-          <div className={styles.widget}>
-            <strong>Estadísticas</strong>
-            <ul style={{listStyle:'none', padding:0, marginTop:'10px', fontSize:'0.9rem', color:'var(--text-muted)'}}>
-               <li>👀 Vistas: {post.viewCount}</li>
-               <li>💬 Respuestas: {post.comments?.length || 0}</li>
-            </ul>
-          </div>
+           </div>
         </aside>
       </div>
     </div>

@@ -40,6 +40,12 @@ router.get('/', (req, res, next) => {
 // @route   GET /api/auth/google/callback
 router.get('/callback', (req, res, next) => {
   console.log('🔍 DEBUG - Llegó al callback de Google');
+
+  if (req.user.isActive === false) {
+      console.log('⛔ Usuario Google baneado intentó entrar:', req.user.email);
+      // Redirigimos al login con un parámetro de error específico
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=account_suspended`);
+    }
   
   if (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID === 'placeholder_por_ahora') {
     console.log('❌ DEBUG - Google no configurado en callback');
@@ -78,7 +84,7 @@ router.get('/callback', (req, res, next) => {
 
   } catch (error) {
     console.error('💥 DEBUG - Error en callback:', error);
-    res.redirect(`${process.env.FRONTEND_URL}/login?error=token_generation_failed`);
+    return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
   }
 });
 

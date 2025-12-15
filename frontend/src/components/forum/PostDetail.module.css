@@ -55,11 +55,99 @@
 
 /* DISEÑO DE CADA MENSAJE (Post Original y Comentarios) */
 .messageCard {
+  display: flex; /* Flexbox para poner votos a la izquierda y contenido a la derecha */
+  gap: 0;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
+}
+
+.leftSide {
+  width: 60px; /* Columna angosta para votos */
+  background: var(--bg-body);
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 15px;
+  border-right: 1px solid var(--border);
+}
+
+.voteContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.voteBtn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.voteBtn:hover {
+  color: var(--text-main);
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+}
+
+/* Colores de Voto Activo */
+.upActive { color: #e67e22 !important; } /* Naranja Reddit */
+.downActive { color: #3498db !important; } /* Azul Reddit */
+
+.score {
+  font-weight: bold;
+  font-size: 1rem;
+}
+.orange { color: #e67e22; }
+.blue { color: #3498db; }
+
+.originalPosterAvatar {
+  margin-top: 20px;
+}
+
+.contentSide {
+  flex: 1;
+  padding: 15px 25px;
+}
+
+/* 🆕 Estilos para la insignia de Karma */
+.karmaBadge {
+  color: white; /* Siempre blanco para mejor contraste */
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin-left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap; /* Evita que el badge se rompa en varias líneas */
+}
+
+/* Badges de Rol */
+.badgeAdmin {
+  background: #34495e;
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.badgeProv {
+  background: #27ae60;
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
 }
 
 /* Columna Autor (Izquierda) */
@@ -216,6 +304,27 @@
   text-decoration: none;
   margin-bottom: 20px;
   font-weight: bold;
+}
+
+/* 📸 Estilos para Imagen Adjunta */
+.messageImageContainer {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  max-width: 100%;
+}
+
+.messageImage {
+  max-width: 100%;
+  max-height: 500px; /* Evita imágenes gigantes verticales */
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: zoom-in; /* Indica que se puede ampliar */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.messageImage:hover {
+  transform: scale(1.01);
 }
 
 .backBtn:hover { color: var(--accent); }

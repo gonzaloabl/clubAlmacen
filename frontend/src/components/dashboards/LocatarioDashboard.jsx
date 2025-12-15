@@ -1,69 +1,89 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { DashboardLayout } from '../layouts/DashboardLayout';
 import { ProfileSettings } from './ProfileSettings';
-import { Link } from 'react-router-dom';
+import { KarmaWidget } from '../common/KarmaWidget'; // ✅ Widget Importado
+import styles from './LocatarioDashboard.module.css';
+import { useNavigate } from 'react-router-dom';
+import { SupportPanel } from '../common/SupportPanel';
 
 export function LocatarioDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('inicio'); // Tabs: inicio, perfil, favoritos
 
-  const sidebarItems = [
-    { label: 'Mi Resumen', icon: '🏠', onClick: () => setActiveTab('overview'), isActive: activeTab === 'overview' },
-    { label: 'Mi Perfil', icon: '⚙️', onClick: () => setActiveTab('profile'), isActive: activeTab === 'profile' },
-    // Enlaces externos directos
-    { label: 'Ir al Foro', icon: '💬', path: '/forum' },
-    { label: 'Buscar Proveedores', icon: '🚚', path: '/directorio' },
-  ];
+  // Renderizador de contenido según la Tab
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'inicio':
+        return (
+          <div className={styles.dashboardHome}>
+            {/* 1. ✅ KARMA WIDGET (Solo aquí) */}
+            <KarmaWidget user={user} />
+
+            {/* 2. Sección de Bienvenida y Accesos */}
+            <div className={styles.welcomeCard}>
+              <h3>👋 ¡Bienvenido a tu espacio, {user?.name.split(' ')[0]}!</h3>
+              <p>Desde aquí puedes gestionar tu cuenta y conectar con el barrio.</p>
+            </div>
+
+            {/* 3. Grid de Accesos Rápidos */}
+            <h4 className={styles.sectionTitle}>Accesos Rápidos</h4>
+            <div className={styles.quickActionsGrid}>
+              <div className={styles.actionCard} onClick={() => navigate('/forum')}>
+                <span className={styles.actionIcon}>💬</span>
+                <span>Ir al Foro</span>
+              </div>
+              <div className={styles.actionCard} onClick={() => navigate('/directorio')}>
+                <span className={styles.actionIcon}>🚚</span>
+                <span>Buscar Proveedores</span>
+              </div>
+              <div className={styles.actionCard} onClick={() => navigate('/noticias')}>
+                <span className={styles.actionIcon}>📰</span>
+                <span>Ver Noticias</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'perfil':
+        return <ProfileSettings />;
+
+      default:
+        return <div>Sección en construcción</div>;
+    }
+  };
 
   return (
-    <DashboardLayout 
-      title="Panel de Locatario"
-      subtitle={`Bienvenido, ${user?.name}.`}
-      sidebarItems={sidebarItems}
-    >
-      
-      {/* --- VISTA GENERAL (LIMPIA) --- */}
-      {activeTab === 'overview' && (
-        <div>
-          <h2 style={{color: 'var(--text-main)'}}>Bienvenido a tu Panel</h2>
-          
-          <div style={styles.noticeBox}>
-             <strong>👋 ¡Hola!</strong> Recuerda mantener tu <strong style={{textDecoration:'underline', cursor:'pointer'}} onClick={()=>setActiveTab('profile')}>Perfil de Negocio</strong> actualizado para que otros te encuentren.
-          </div>
-
-          <h3 style={{marginTop:'30px', color:'var(--text-main)'}}>Accesos Rápidos</h3>
-          <div style={styles.shortcutsGrid}>
-             <Link to="/directorio" style={styles.shortcutCard}>
-                <span style={{fontSize:'2rem'}}>🚚</span>
-                <h4>Buscar Proveedores</h4>
-                <p>Encuentra abastecimiento en tu zona</p>
-             </Link>
-             <Link to="/forum" style={styles.shortcutCard}>
-                <span style={{fontSize:'2rem'}}>💬</span>
-                <h4>Foro Comunitario</h4>
-                <p>Participa en discusiones</p>
-             </Link>
-             <Link to="/noticias" style={styles.shortcutCard}>
-                <span style={{fontSize:'2rem'}}>📰</span>
-                <h4>Noticias</h4>
-                <p>Actualidad del rubro</p>
-             </Link>
-          </div>
+    <div className={styles.container}>
+      {/* SIDEBAR SIMPLE */}
+      <aside className={styles.sidebar}>
+        <div className={styles.userInfo}>
+           <div className={styles.avatarPlaceholder}>{user?.name?.charAt(0)}</div>
+           <p className={styles.userName}>{user?.name}</p>
+           <span className={styles.userRole}>Locatario</span>
         </div>
-      )}
+        
+        <nav className={styles.nav}>
+          <button 
+            className={activeTab === 'inicio' ? styles.active : ''} 
+            onClick={() => setActiveTab('inicio')}
+          >
+            🏠 Resumen
+          </button>
+          <button 
+            className={activeTab === 'perfil' ? styles.active : ''} 
+            onClick={() => setActiveTab('perfil')}
+          >
+            ⚙️ Mi Perfil
+          </button>
+          <SupportPanel />
+        </nav>
+      </aside>
 
-      {/* --- MI PERFIL --- */}
-      {activeTab === 'profile' && (
-        <ProfileSettings />
-      )}
-
-    </DashboardLayout>
+      {/* CONTENIDO PRINCIPAL */}
+      <main className={styles.mainContent}>
+        {renderContent()}
+      </main>
+    </div>
   );
 }
-
-const styles = {
-  noticeBox: { padding: '20px', background: 'rgba(52, 152, 219, 0.1)', borderLeft: '4px solid var(--accent)', color: 'var(--text-main)', borderRadius: '8px', lineHeight: '1.5' },
-  shortcutsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '15px' },
-  shortcutCard: { background: 'var(--bg-card)', padding: '25px', borderRadius: '10px', border: '1px solid var(--border)', textAlign: 'center', textDecoration: 'none', color: 'var(--text-main)', transition: 'transform 0.2s, box-shadow 0.2s' },
-};

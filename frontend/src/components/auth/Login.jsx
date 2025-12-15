@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { GoogleAuthButton } from './GoogleAuthButton.jsx';
 // Importamos Link si quieres poner un botón de "Volver al inicio"
@@ -11,8 +12,30 @@ export function Login() {
   const [name, setName] = useState('');
   const [role, setRole] = useState('locatario');
   const [adminCreationCode, setAdminCreationCode] = useState('');
-  
+  const location = useLocation();
+  const [urlError, setUrlError] = useState('');
   const { login, register, error, loading, user } = useAuth();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const errorType = params.get('error');
+
+    if (errorType) {
+      const messages = {
+        'account_suspended': '⛔ Tu cuenta ha sido suspendida. Contacta a administración.',
+        'suspended': '⛔ Sesión cerrada por suspensión de cuenta.',
+        'google_auth_failed': '❌ Error al autenticar con Google.',
+        'auth_failed': '❌ Falló la autenticación.',
+        'google_not_configured': '⚠️ Google Auth no está configurado en el servidor.'
+      };
+      
+      // Si el error existe en nuestro diccionario, lo mostramos. Si no, mensaje genérico.
+      setUrlError(messages[errorType] || 'Ocurrió un error desconocido.');
+      
+      // Limpiamos la URL para que no se vea fea (Opcional, pero se ve pro)
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location]);
 
   if (user) return null; // Si ya está logueado, no mostrar
 
@@ -43,6 +66,21 @@ export function Login() {
               : 'Ingresa tus credenciales para acceder a tu panel.'}
           </p>
         </div>
+
+        {urlError && (
+            <div style={{
+            backgroundColor: '#fee2e2', 
+            border: '1px solid #ef4444', 
+            color: '#b91c1c', 
+            padding: '10px', 
+            borderRadius: '6px', 
+            marginBottom: '15px',
+            textAlign: 'center',
+            fontSize: '0.9rem'
+            }}>
+            {urlError}
+            </div>
+        )}
 
         {error && <div style={styles.errorAlert}>{error}</div>}
 

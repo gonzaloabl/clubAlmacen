@@ -1,6 +1,7 @@
 // frontend/src/App.jsx
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { Login } from './components/auth/Login.jsx';
 import { useAuth } from './hooks/useAuth.js';
 import { PostList } from './components/forum/PostList.jsx';
@@ -17,6 +18,7 @@ import { UsefulLinks } from './components/pages/UsefulLinks';
 import { LocatariosDirectory } from './components/pages/LocatariosDirectory.jsx';
 import { BlogList } from './components/pages/BlogList.jsx';
 import { Footer } from './components/common/Footer.jsx';
+import { ForumHome } from './components/forum/ForumHome.jsx';
 
 // 🆕 IMPORTAR DASHBOARDS
 import { Dashboard } from './components/Dashboard.jsx';
@@ -218,6 +220,13 @@ function AppContent() {
       
       <Route path="/forum" element={
           <MainLayout>
+            <ForumHome />
+          </MainLayout>
+      } />
+      
+      {/* 2. LISTA DE TEMAS (Filtrada por categoría específica al hacer clic en una tarjeta) */}
+      <Route path="/forum/category/:categoryId" element={
+          <MainLayout>
             <PostList />
           </MainLayout>
       } />
@@ -268,11 +277,84 @@ function AppContent() {
 }
 
 export function App() {
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+
+  // 1. PREGUNTAR AL SERVIDOR
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/system/public-status');
+        const data = await res.json();
+        setIsMaintenance(data.maintenance);
+      } catch (error) {
+        console.error("Error status:", error);
+      } finally {
+        setCheckingStatus(false);
+      }
+    };
+    checkStatus();
+  }, []);
+
+  // 2. VERIFICAR SI SOY ADMIN (Llave Maestra)
+  const userStr = localStorage.getItem('user'); // Obtenemos el usuario guardado
+  let isAdmin = false;
+  if (userStr) {
+    try {
+        const userObj = JSON.parse(userStr);
+        // Ajusta esto si tu objeto usuario tiene otra estructura
+        if (userObj.role === 'admin') isAdmin = true;
+    } catch (e) { isAdmin = false; }
+  }
+
+  // 3. PANTALLA DE CARGA (Rápida)
+  if (checkingStatus) {
+    return <div style={{height:'100vh', background:'#f0f2f5'}}></div>;
+  }
+
+  // 4. BLOQUEO POR MANTENIMIENTO
+  // Si hay mantenimiento Y NO soy admin -> Muestro el cartel
+  if (isMaintenance && !isAdmin) {
+    return (
+      <div style={{
+        height: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        background: '#f8f9fa', 
+        color: '#333',
+        textAlign: 'center',
+        padding: '20px',
+        fontFamily: 'sans-serif'
+      }}>
+        <div style={{fontSize: '4rem', marginBottom: '20px'}}>🚧</div>
+        <h1 style={{color: '#2c3e50', marginBottom: '10px'}}>Sitio en Mantenimiento</h1>
+        <p style={{fontSize: '1.2rem', color: '#7f8c8d'}}>
+            Estamos realizando mejoras en Club Almacén.
+        </p>
+        <p style={{fontWeight: 'bold', color: '#e67e22'}}>
+            Volveremos en unos minutos.
+        </p>
+        <button 
+            onClick={() => window.location.reload()} 
+            style={{marginTop: '30px', padding: '10px 20px', cursor: 'pointer', fontSize: '1rem'}}
+        >
+            🔄 Recargar
+        </button>
+        <div style={{marginTop: '50px'}}>
+            <a href="/login" style={{color: '#ddd', textDecoration: 'none', fontSize: '0.8rem'}}>Admin</a>
+        </div>
+      </div>
+    );
+  }
+
+  // 5. SI TODO ESTÁ BIEN, CARGAMOS LA APP
   return (
     <Router>
       <AppContent />
     </Router>
-  )
+  );
 }
 
 export default App;

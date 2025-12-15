@@ -11,24 +11,16 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-//CONFIGURACION MULTER
+// --- CONFIGURACIÓN MULTER ---
 const storage = multer.diskStorage({
   destination(req, file, cb) {
-    // Construimos la ruta absoluta:
-    // __dirname está en /backend/src/routes
-    // Subimos dos niveles (../../) para llegar a la raíz /backend
-    // Entramos a /uploads
     const uploadPath = path.join(__dirname, '../../uploads');
-
-    // Creamos la carpeta si no existe (Seguro de vida)
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
     }
-
     cb(null, uploadPath);
   },
   filename(req, file, cb) {
-    // Nombre limpio y único
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   },
@@ -36,27 +28,17 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 5000000 }, // 5MB
+  limits: { fileSize: 5000000 }, 
   fileFilter: function (req, file, cb) {
-    // 1. Definir los tipos permitidos
     const filetypes = /jpeg|jpg|png|webp/;
-    
-    // 2. Verificar la extensión usando 'path' (Asegúrate de que 'path' esté importado arriba)
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    
-    // 3. Verificar el tipo MIME
     const mimetype = filetypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Error: Solo se permiten imágenes (jpeg, jpg, png, webp)!'));
-    }
+    if (mimetype && extname) return cb(null, true);
+    cb(new Error('Error: Solo se permiten imágenes!'));
   },
 });
 
 // @desc    Obtener perfil del usuario logueado
-// @route   GET /api/users/me
 router.get('/me', protect, (req, res) => {
   res.json({
     id: req.user._id,
@@ -65,7 +47,6 @@ router.get('/me', protect, (req, res) => {
     role: req.user.role,
     adminRole: req.user.adminRole,
     region: req.user.region,
-    // Devolvemos también los datos de perfil
     phone: req.user.phone,
     address: req.user.address,
     businessName: req.user.businessName,
@@ -73,22 +54,18 @@ router.get('/me', protect, (req, res) => {
     website: req.user.website,
     whatsapp: req.user.whatsapp,
     avatar: req.user.avatar,
-    
     oauthProvider: req.user.oauthProvider,
     registrationComplete: req.user.registrationComplete,
     isVerified: req.user.isVerified
   });
 });
 
-// 🆕 NUEVA RUTA: ACTUALIZAR PERFIL PROPIO
-// @desc    Actualizar datos del usuario logueado
-// @route   PUT /api/users/profile
+// @desc    Actualizar perfil propio
 router.put('/profile', protect, upload.single('avatar') , async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
     if (user) {
-      // Actualizamos campos si vienen en el body
       user.name = req.body.name || user.name;
       user.region = req.body.region || user.region;
       user.phone = req.body.phone || user.phone;
@@ -99,16 +76,12 @@ router.put('/profile', protect, upload.single('avatar') , async (req, res) => {
       user.whatsapp = req.body.whatsapp || user.whatsapp;
       user.avatar = req.body.avatar || user.avatar;
 
-      // 4️⃣ SI HAY ARCHIVO, GUARDAMOS LA RUTA
       if (req.file) {
-        // Guardamos la ruta relativa. Ej: /uploads/avatar-123.jpg
         user.avatar = `/uploads/${req.file.filename}`;
       } else if (req.body.avatar) {
-        // Si no subió archivo pero mandó texto (caso raro, mantener por compatibilidad)
         user.avatar = req.body.avatar; 
       }
 
-      // Solo actualizamos password si el usuario envió uno nuevo
       if (req.body.password) {
         user.password = req.body.password;
       }
@@ -122,12 +95,10 @@ router.put('/profile', protect, upload.single('avatar') , async (req, res) => {
         role: updatedUser.role,
         adminRole: updatedUser.adminRole,
         region: updatedUser.region,
-        // Datos actualizados
         phone: updatedUser.phone,
         businessName: updatedUser.businessName,
         avatar: updatedUser.avatar,
-        
-        token: req.headers.authorization.split(' ')[1] // Devolver el mismo token
+        token: req.headers.authorization.split(' ')[1] 
       });
     } else {
       res.status(404).json({ message: 'Usuario no encontrado' });
@@ -137,28 +108,78 @@ router.put('/profile', protect, upload.single('avatar') , async (req, res) => {
   }
 });
 
-// --- RUTAS DE ADMIN (MANTENER IGUAL) ---
+// --- RUTAS DE ADMIN ---
 
-// @desc    Obtener todos los usuarios (SOLO ADMIN)
-router.get('/', requireAdmin, async (req, res) => {
+// @desc    Obtener usuarios (UNIFICADA: Incluye lógica Regional)
+// @route   GET /api/users
+router.get('/', protect, async (req, res) => {
   try {
-    const users = await User.find().select('-password -adminCreationCode');
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Acceso denegado' });
+    }
+
+    let query = {};
+
+    // Filtro de Seguridad Regional
+    if (req.user.adminRole === 'regional') {
+        query.region = req.user.region;
+    }
+
+    // Eliminamos password y adminCreationCode de la respuesta
+    const users = await User.find(query)
+        .select('-password -adminCreationCode')
+        .sort({ createdAt: -1 });
+
     res.json(users);
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener usuarios', error: error.message });
+    console.error("Error obteniendo usuarios:", error);
+    res.status(500).json({ message: 'Error obteniendo usuarios' });
   }
 });
 
-// @desc    Actualizar usuario (Admin)
+// @desc    Actualizar Rol o Estado (Banear/Ascender)
+// @route   PUT /api/users/:id/admin-action
+router.put('/:id/admin-action', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: 'Sin permiso' });
+
+    console.log(`🛠️ ADMIN ACTION: Modificando usuario ${req.params.id}`);
+    console.log(`📦 Datos recibidos:`, req.body);
+
+    const { role, isActive, adminRole } = req.body;
+    const userToEdit = await User.findById(req.params.id);
+
+    if (!userToEdit) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    // Protección SuperAdmin
+    if (userToEdit.adminRole === 'superadmin' && req.user.adminRole !== 'superadmin') {
+        return res.status(403).json({ message: 'No puedes editar a un SuperAdmin' });
+    }
+
+    // Aplicar cambios
+    if (role) userToEdit.role = role;
+    if (isActive !== undefined) userToEdit.isActive = isActive;
+    
+    if (adminRole && req.user.adminRole === 'superadmin') {
+        userToEdit.adminRole = adminRole;
+    }
+
+    await userToEdit.save();
+    console.log("✅ Usuario actualizado con éxito");
+    res.json({ message: 'Usuario actualizado', user: userToEdit });
+
+  } catch (error) {
+    console.error("🔥 ERROR CRÍTICO AL ACTUALIZAR USUARIO:", error); // <-- ¡ESTO NOS DIRÁ LA CAUSA!
+    res.status(500).json({ message: 'Error actualizando usuario', error: error.message });
+  }
+});
+
+// @desc    Actualizar usuario genérico (Admin)
 router.put('/:id', protect, async (req, res) => {
-    // ... (Tu lógica existente para editar otros usuarios si la tenías)
-    // Por ahora la dejamos simple o puedes copiar la que tenías antes
     try {
-        // Verificar permisos (Admin o el mismo usuario)
         if (req.user._id.toString() !== req.params.id && req.user.role !== 'admin') {
           return res.status(403).json({ message: 'No autorizado' });
         }
-    
         const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).select('-password');
         res.json(user);
       } catch (error) {
@@ -177,52 +198,77 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// @desc    Obtener lista pública de proveedores
-// @route   GET /api/users/providers
-// @access  Público (o Privado según prefieras, lo haremos público para atraer usuarios)
+// @desc    Crear un Admin (Solo para SuperAdmin)
+// @route   POST /api/users/create-admin
+router.post('/create-admin', protect, async (req, res) => {
+  try {
+    // 1. Solo el SuperAdmin puede crear otros admins
+    if (req.user.adminRole !== 'superadmin') {
+        return res.status(403).json({ message: '⛔ Solo el SuperAdmin puede crear administradores.' });
+    }
+
+    const { name, email, password, adminType, region } = req.body;
+
+    // 2. Validar duplicados
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: 'El correo ya está registrado.' });
+    }
+
+    // 3. Crear el usuario con los poderes
+    const user = await User.create({
+      name,
+      email,
+      password, // El modelo se encarga de encriptarla
+      role: 'admin',
+      adminRole: adminType, // 'regional' o 'technical'
+      region: adminType === 'regional' ? region : null, // Solo guardamos región si es regional
+      isActive: true,
+      emailVerified: true // Como lo crea el jefe, nace verificado
+    });
+
+    res.status(201).json({ 
+        message: `✅ Admin ${adminType} creado exitosamente`,
+        user: { id: user._id, name: user.name, email: user.email }
+    });
+
+  } catch (error) {
+    console.error("Error creando admin:", error);
+    res.status(500).json({ message: 'Error al crear administrador', error: error.message });
+  }
+});
+
+// --- RUTAS PÚBLICAS ---
+
 router.get('/public/providers', async (req, res) => {
   try {
-    // Buscamos usuarios con role 'proveedor'
     const providers = await User.find({ role: 'proveedor' })
-      .select('name businessName businessDescription email phone address website whatsapp avatar region'); // Solo datos públicos
-    
+      .select('name businessName businessDescription email phone address website whatsapp avatar region');
     res.json(providers);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener proveedores' });
   }
 });
 
-// @desc    Obtener lista pública de locatarios
-// @route   GET /api/users/public/locatarios
 router.get('/public/locatarios', async (req, res) => {
   try {
     const locatarios = await User.find({ role: 'locatario' })
       .select('name businessName businessDescription email phone address website whatsapp avatar region');
-    
     res.json(locatarios);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener locatarios' });
   }
 });
 
-// @desc    Obtener perfil público de un usuario específico (Proveedor)
-// @route   GET /api/users/public/:id
 router.get('/public/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
       .select('name businessName businessDescription email phone address website whatsapp avatar region role');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'Usuario no encontrado' });
-    }
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener perfil público' });
   }
 });
-
-
-
-
 
 export default router;

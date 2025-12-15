@@ -1,6 +1,7 @@
 import express from 'express';
 import { generateToken } from '../utils/generateToken.js';
 import User from '../models/User.js';
+import SystemConfig from '../models/SystemConfig.js';
 
 // 🆕 IMPORTAR YUP Y ESQUEMAS
 import { registerSchema, loginSchema, validateData } from '../schemas/authSchemas.js';
@@ -108,11 +109,9 @@ router.post('/login', async (req, res) => {
   console.log('🔄 Intentando login:', { email: req.body.email });
 
   try {
-    // � PASO 1: VALIDACIÓN CON YUP
     const validation = await validateData(loginSchema, req.body);
     
     if (!validation.isValid) {
-      console.log('❌ Validación de login falló:', validation.errors);
       return res.status(400).json({ 
         message: "Datos de login inválidos",
         errors: validation.errors 
@@ -121,18 +120,36 @@ router.post('/login', async (req, res) => {
 
     const { email, password } = validation.data;
 
-    // ✅ MANTENEMOS TU LÓGICA DE LOGIN (igual)
     const user = await User.findOne({ email });
     
     if (!user) {
-      console.log('❌ Usuario no encontrado:', email);
       return res.status(401).json({ message: "🔐 Credenciales inválidas" });
     }
 
+    // 🆕 2. BLOQUEO POR MANTENIMIENTO EN EL LOGIN
+    // Antes de verificar contraseña, vemos si el sistema está cerrado
+    const config = await SystemConfig.findOne({ key: 'global_config' });
+    
+    if (config && config.isMaintenanceMode) {
+        // Si hay mantenimiento, SOLO dejamos pasar a los admins
+        if (user.role !== 'admin') {
+            console.log(`🚧 Bloqueando login a ${email} por mantenimiento`);
+            return res.status(503).json({ 
+                message: "🚧 El sistema está en mantenimiento. Solo personal autorizado." 
+            });
+        }
+    }
+    // ----------------------------------------------------
+
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      console.log('❌ Contraseña incorrecta para:', email);
       return res.status(401).json({ message: "🔐 Credenciales inválidas" });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({ 
+        message: "⛔ Tu cuenta ha sido suspendida. Contacta a administración." 
+      });
     }
 
     console.log('✅ Login exitoso:', user._id, 'Rol:', user.role);
@@ -141,7 +158,7 @@ router.post('/login', async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role,  // 🆕 INCLUIMOS EL ROL
+      role: user.role,
       adminRole: user.adminRole,
       token: generateToken(user._id)
     });

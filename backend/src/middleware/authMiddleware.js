@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import SystemConfig from '../models/SystemConfig.js';
 
 // ✅ MANTENEMOS TU PROTECT ACTUAL CON LOGS MEJORADOS
 export const protect = async (req, res, next) => {
@@ -30,6 +31,22 @@ export const protect = async (req, res, next) => {
     if (!req.user) {
       console.log('❌ Usuario no encontrado en BD');
       return res.status(401).json({ message: "🔒 Usuario no encontrado" });
+    }
+
+    if (req.user.isActive === false) {
+       console.log('⛔ Token válido pero usuario baneado:', req.user.email);
+       return res.status(403).json({ message: "⛔ Tu cuenta ha sido suspendida." });
+    }
+
+    // Buscamos la configuración global
+    const config = await SystemConfig.findOne({ key: 'global_config' });
+    
+    // Si está activado Y el usuario NO es admin... ¡FUERA!
+    if (config && config.isMaintenanceMode && req.user.role !== 'admin') {
+        console.log(`🚧 Bloqueando acceso a ${req.user.email} por Mantenimiento`);
+        return res.status(503).json({ 
+            message: "🚧 El sistema está en mantenimiento. Vuelve en unos minutos." 
+        });
     }
     
     console.log('✅ Usuario encontrado:', {
