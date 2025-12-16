@@ -19,6 +19,7 @@ import { LocatariosDirectory } from './components/pages/LocatariosDirectory.jsx'
 import { BlogList } from './components/pages/BlogList.jsx';
 import { Footer } from './components/common/Footer.jsx';
 import { ForumHome } from './components/forum/ForumHome.jsx';
+import { Marketplace } from './components/pages/Marketplace.jsx';
 
 // 🆕 IMPORTAR DASHBOARDS
 import { Dashboard } from './components/Dashboard.jsx';
@@ -217,7 +218,11 @@ function AppContent() {
           <ProvidersDirectory />
         </MainLayout>
       } />
-      
+      <Route path="/mercado" element={
+        <MainLayout>
+          <Marketplace />
+        </MainLayout>
+      } />
       <Route path="/forum" element={
           <MainLayout>
             <ForumHome />

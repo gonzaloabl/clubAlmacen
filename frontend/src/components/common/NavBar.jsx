@@ -37,6 +37,7 @@ export function NavBar() {
             <div style={styles.dropdownMenu}>
               <Link to="/directorio" style={styles.dropdownItem}>🚚 Proveedores</Link>
               <Link to="/comercios" style={styles.dropdownItem}>🏪 Locatarios</Link>
+              <Link to="/mercado" style={styles.dropdownItem}>🛒 Mercado Mayorista</Link>
             </div>
           )}
         </div>

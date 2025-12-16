@@ -1,56 +1,49 @@
-// backend/src/scripts/initNewsCategories.js
 import mongoose from 'mongoose';
-import Category from '../models/Category.js'; // Asegúrate de que esta ruta es correcta
-import 'dotenv/config'; // Necesario para cargar MONGO_URI
+import Category from '../models/Category.js'; 
+import 'dotenv/config'; 
 
 const categoriesToCreate = [
-    // Categorías de Temas (Usadas en el Keyword Matching)
-    { name: 'Financiero', description: 'Noticias sobre economía, impuestos y comercio.' },
-    { name: 'Agricultura', description: 'Noticias sobre el campo, cosechas y exportación.' },
-    { name: 'Leyes', description: 'Noticias sobre tribunales, fiscalía y procesos legales.' },
-
-    // Categorías de Regiones (Usadas para segmentar las fuentes RSS)
-    { name: 'Valparaíso', description: 'Noticias de la Región de Valparaíso (SoyChile).' },
-    { name: 'Temuco', description: 'Noticias de la Región de La Araucanía (SoyChile).' },
-    { name: 'BioBio', description: 'Noticias nacionales de BioBioChile.' },
-    // Puedes agregar más regiones si usas más feeds de SoyChile aquí
+    // Estas son las categorías EXACTAS que usará el sistema de noticias
+    { name: 'Comercio', description: 'Noticias del rubro comercial y retail.' },
+    { name: 'Financiero', description: 'Economía, finanzas e indicadores.' },
+    { name: 'Tecnología', description: 'Novedades tecnológicas y digitales.' },
+    { name: 'Legislación', description: 'Leyes, normativas y SII.' },
+    { name: 'Regional', description: 'Noticias de regiones.' },
+    { name: 'Actualidad', description: 'Noticias generales y contingencia.' }
 ];
 
 async function initNewsCategories() {
     if (!process.env.MONGODB_URI) {
-        console.error("❌ Error: MONGODB_URI no está definida. La conexión fallará.");
+        console.error("❌ Error: MONGODB_URI no está definida.");
         return;
     }
 
     let connection;
     try {
-        // Conexión a la base de datos
         connection = await mongoose.connect(process.env.MONGODB_URI);
-        console.log('✅ Conectado a MongoDB para inicialización.');
+        console.log('🔌 Conectado a MongoDB...');
 
-        const promises = categoriesToCreate.map(async (categoryData) => {
-            const existing = await Category.findOne({ name: categoryData.name });
-            
-            if (!existing) {
-                await Category.create(categoryData);
-                console.log(`[INIT] Creada categoría: ${categoryData.name}`);
-            } else {
-                console.log(`[INIT] Categoría ya existe: ${categoryData.name}`);
-            }
-        });
+        for (const cat of categoriesToCreate) {
+            // Buscamos si existe, si no, la crea (upsert)
+            await Category.findOneAndUpdate(
+                { name: cat.name },
+                cat,
+                { upsert: true, new: true }
+            );
+            console.log(`✅ Categoría asegurada: ${cat.name}`);
+        }
 
-        await Promise.all(promises);
-        console.log('--- Inicialización de categorías de noticias completada. ---');
+        console.log('🏁 Categorías listas. Puedes cerrar este script.');
 
     } catch (error) {
-        console.error('💥 Error fatal al inicializar categorías:', error);
+        console.error('💥 Error:', error);
     } finally {
         if (connection) {
              await mongoose.disconnect();
              console.log('MongoDB desconectado.');
+             process.exit();
         }
     }
 }
 
-// Ejecución del script
 initNewsCategories();

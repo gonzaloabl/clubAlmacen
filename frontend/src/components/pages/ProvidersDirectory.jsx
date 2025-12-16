@@ -31,8 +31,7 @@ export function ProvidersDirectory() {
     
     // Filtro por Región (Muestra la región seleccionada O los Nacionales)
     const matchesRegion = regionFilter === 'Todas' || 
-                          prov.region === regionFilter || 
-                          prov.region === 'Nacional';
+                          prov.region === regionFilter 
 
     return matchesSearch && matchesRegion;
   });

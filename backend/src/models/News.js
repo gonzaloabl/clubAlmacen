@@ -9,6 +9,7 @@ const newsSchema = new mongoose.Schema({
     publicationDate: { type: Date, default: Date.now },
     // Relación con las categorías (Financiero, Leyes, Valparaíso)
     categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
+    image: {type: String, default: null}
 }, { timestamps: true });
 
 export default mongoose.model('News', newsSchema); 

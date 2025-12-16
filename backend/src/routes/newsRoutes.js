@@ -1,28 +1,20 @@
-// backend/src/routes/newsRoutes.js
 import express from 'express';
 import News from '../models/News.js';
 
 const router = express.Router();
 
-// GET /api/news - Endpoint para obtener noticias
 router.get('/', async (req, res) => {
     try {
-        // Obtenemos los parámetros de query (limit, sort, category)
-        const { limit = 12, sort = '-publicationDate', category } = req.query;
-        let filter = {};
-
-        // Lógica de filtrado por categoría (opcional)
-        if (category) {
-            filter.categories = category;
-        }
-
-        const news = await News.find(filter)
+        const { limit = 12, sort = '-publicationDate' } = req.query;
+        
+        const news = await News.find({})
             .sort(sort)
-            .limit(parseInt(limit)); // Asegura que el límite sea un entero
+            .limit(parseInt(limit))
+            // 👇 ESTO ES CRÍTICO: Trae el nombre real de la categoría
+            .populate('categories', 'name'); 
 
         res.status(200).json({ news });
     } catch (error) {
-        // Manejo de errores
         res.status(500).json({ message: "Error al obtener noticias", error: error.message });
     }
 });

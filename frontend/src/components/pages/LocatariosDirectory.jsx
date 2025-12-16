@@ -26,7 +26,8 @@ export function LocatariosDirectory() {
     const matchesSearch = (l.businessName || l.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (l.address || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesRegion = regionFilter === 'Todas' || l.region === regionFilter || l.region === 'Nacional';
+    const matchesRegion = regionFilter === 'Todas' || 
+                          l.region === regionFilter
 
     return matchesSearch && matchesRegion;
   });

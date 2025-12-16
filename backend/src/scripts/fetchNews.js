@@ -1,88 +1,81 @@
-// backend/src/scripts/fetchNews.js
-import mongoose from 'mongoose';
 import Parser from 'rss-parser';
-import News from '../models/News.js';       // Importamos el NUEVO modelo
-import Category from '../models/Category.js'; // Importamos el modelo de Categoría
-import dotenv from 'dotenv'; 
+import News from '../models/News.js';
+import Category from '../models/Category.js';
 
 const parser = new Parser({
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
+    customFields: {
+        item: [
+            ['media:content', 'mediaContent'],
+            ['enclosure', 'enclosure'],
+            ['content:encoded', 'contentEncoded']
+        ]
+    },
+    timeout: 5000 
 });
 
-
-
-// --- Configuración de Categorización por Temas ---
-const categoryKeywords = {
-  Financiero: ['economia', 'banco', 'bolsa', 'comercio', 'tributario', 'impuestos', 'cmf', 'uf'],
-  Agricultura: ['agro', 'campo', 'cosecha', 'sequía', 'fruta', 'exportación', 'sag'],
-  Leyes: ['ley', 'tribunal', 'justicia', 'fiscalía', 'corte', 'legal'],
-  // Nota: Agrega aquí las categorías que ya creaste en tu BBDD para Temas
-};
-
+// MAPEO FIJO: Si viene de X diario -> Va a Y categoría
 const rssFeeds = [
-    { region: 'Nacional', url: 'https://www.eldesconcierto.cl/feed/' },
+  { url: 'https://cnc.cl/feed/', name: 'Camara Nac. Comercio', categoryName: 'Comercio' },
+  { url: 'https://comerciante.lacuarta.com/feed/', name: 'La Cuarta', categoryName: 'Comercio' },
+  { url: 'https://chocale.cl/feed/', name: 'Chócale', categoryName: 'Financiero' },
+  { url: 'https://www.fayerwayer.com/feed', name: 'FayerWayer', categoryName: 'Tecnología' },
+  { url: 'https://www.diarioeldia.cl/rss/REGION.xml', name: 'Diario El Día', categoryName: 'Regional' },
+  { url: 'https://cooperativa.cl/noticias/site/tax/port/all/rss____1.xml', name: 'Cooperativa', categoryName: 'Actualidad' }
 ];
 
-/**
- * Función principal para buscar, categorizar y guardar noticias
- * (Esta función se llama desde el Cron Job)
- */
 export async function fetchAndSaveNews() {
+  console.log('🚀 Iniciando recolección de noticias...');
   
-  // 1. Obtener todas las categorías de la BBDD
-  const categoriesFromDB = await Category.find({});
-  const categoryMap = {}; 
-  categoriesFromDB.forEach(cat => {
-    categoryMap[cat.name] = cat._id;
-  });
+  try {
+    // 🔥 Descomenta esto SOLO UNA VEZ si quieres borrar las noticias viejas y empezar limpio 
 
-  // 2. Procesar cada feed RSS
-  for (const feedInfo of rssFeeds) {
-    try {
-      const feed = await parser.parseURL(feedInfo.url);
-      
-      for (const item of feed.items) {
-        
-        // 3. Evitar duplicados usando el link (único)
-        const existingNews = await News.findOne({ link: item.link });
-        if (existingNews) continue; 
+    // Cargamos las categorías para obtener sus IDs reales
+    const categoriesFromDB = await Category.find({});
+    const categoryMap = {}; 
+    categoriesFromDB.forEach(cat => { categoryMap[cat.name] = cat._id; });
 
-        // 4. Categorización y Curación
-        const foundCategoryIds = new Set();
-        const content = `${item.title.toLowerCase()} ${item.contentSnippet?.toLowerCase() || ''}`;
+    for (const feedInfo of rssFeeds) {
+      try {
+        const targetId = categoryMap[feedInfo.categoryName];
 
-        // Asignar Categoría de Región
-        if (categoryMap[feedInfo.region]) {
-          foundCategoryIds.add(categoryMap[feedInfo.region]);
+        if (!targetId) {
+            console.warn(`⚠️ Falta la categoría "${feedInfo.categoryName}". Ejecuta initNewsCategories.js primero.`);
+            continue; 
         }
 
-        // Asignar Categorías por Tema (Keyword Matching)
-        for (const categoryName in categoryKeywords) {
-          if (categoryKeywords[categoryName].some(keyword => content.includes(keyword))) {
-            if (categoryMap[categoryName]) {
-              foundCategoryIds.add(categoryMap[categoryName]);
-            }
+        const feed = await parser.parseURL(feedInfo.url);
+
+        for (const item of feed.items) {
+          const existingNews = await News.findOne({ link: item.link });
+          if (existingNews) continue;
+
+          // Rescate de imagen
+          let imageUrl = item.enclosure?.url || item.mediaContent?.['$']?.url;
+          if (!imageUrl && item.contentEncoded) {
+             const imgMatch = item.contentEncoded.match(/src="([^"]+?\.(?:jpg|jpeg|png|webp))"/i);
+             if (imgMatch) imageUrl = imgMatch[1];
           }
+
+          const newNews = new News({
+            title: item.title,
+            content: item.contentSnippet?.substring(0, 200) + '...' || 'Leer más...',
+            link: item.link,
+            categories: [targetId], // ID real de la categoría
+            publicationDate: item.pubDate ? new Date(item.pubDate) : new Date(),
+            source: feedInfo.name, 
+            image: imageUrl
+          });
+
+          await newNews.save();
         }
+        console.log(`✅ ${feedInfo.name} procesado.`);
 
-        // 5. Crear y guardar el nuevo documento News
-        const newNews = new News({
-          title: item.title,
-          content: item.contentSnippet || 'Ver sitio original para detalles.',
-          link: item.link, 
-          categories: Array.from(foundCategoryIds),
-          publicationDate: new Date(item.pubDate), 
-          source: feed.title,
-        });
-
-        await newNews.save();
-        console.log(`[NEWS SCRAPER] Noticia guardada: ${item.title} (Fuente: ${feedInfo.region})`);
+      } catch (err) {
+        console.error(`❌ Error en ${feedInfo.name}: ${err.message}`);
       }
-    } catch (error) {
-      console.error(`[NEWS SCRAPER] Error al procesar el feed ${feedInfo.url}:`, error.message);
     }
+    console.log('🏁 Noticias actualizadas.');
+  } catch (error) {
+    console.error('🔥 Error crítico:', error);
   }
 }
-
