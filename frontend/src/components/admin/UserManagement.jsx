@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { userAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import toast from 'react-hot-toast'; // 👈 ¡Feedback bonito!
+import styles from './UserManagement.module.css'; // 👈 Asegúrate de crear el archivo CSS arriba
 
 export function UserManagement() {
   const { user: currentUser } = useAuth();
@@ -8,154 +10,137 @@ export function UserManagement() {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Paginación Simple
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Cargar usuarios del servidor
   const loadUsers = async () => {
     try {
-      // Nota: No ponemos setLoading(true) aquí para evitar parpadeos al recargar
       const data = await userAPI.getAllUsers();
       setUsers(data);
     } catch (error) {
-      console.error("Error:", error);
+      toast.error("Error cargando usuarios");
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Carga inicial
-  useEffect(() => { 
-    setLoading(true);
-    loadUsers(); 
-  }, []);
+  useEffect(() => { setLoading(true); loadUsers(); }, []);
 
-  // Filtro de búsqueda (Se actualiza cuando cambia 'users' o 'searchTerm')
+  // Filtro
   useEffect(() => {
     const results = users.filter(u => 
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredUsers(results);
+    setCurrentPage(1); // Reset a pág 1 al buscar
   }, [searchTerm, users]);
 
-  // 👇 LA MAGIA: Actualización Optimista
+  // Lógica de Paginación
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
   const toggleBan = async (targetUser) => {
-    // 1. Calculamos el nuevo estado lógico
     const isCurrentlyActive = targetUser.isActive !== false; 
-    const newStatus = !isCurrentlyActive; // Invertimos
+    const newStatus = !isCurrentlyActive; 
+    const actionText = newStatus ? "ACTIVADO" : "BANEADO";
 
-    console.log(`🔄 Cambiando visualmente a: ${newStatus ? 'ACTIVO' : 'BANEADO'}`);
-
-    // 2. ⚡ ACTUALIZACIÓN VISUAL INMEDIATA (Sin esperar al servidor)
-    // Modificamos el estado local 'users' manualmente para que el botón cambie YA.
-    setUsers(prevUsers => 
-      prevUsers.map(u => 
-        u._id === targetUser._id ? { ...u, isActive: newStatus } : u
-      )
-    );
+    // Optimistic UI Update
+    setUsers(prev => prev.map(u => u._id === targetUser._id ? { ...u, isActive: newStatus } : u));
+    toast.success(`Usuario ${actionText} exitosamente`); // Feedback inmediato
 
     try {
-      // 3. Enviamos la petición al servidor en segundo plano
       await userAPI.updateUserStatus(targetUser._id, { isActive: newStatus });
-      console.log("✅ Servidor confirmó el cambio");
-      
-      // Opcional: Recargamos del servidor para asegurar sincronización total
-      // loadUsers(); 
     } catch (error) {
-      // 4. Si falla, revertimos el cambio visual (Rollback)
-      console.error("❌ Falló el servidor, revirtiendo cambios...", error);
-      alert("Error al cambiar estado: " + error.message);
-      setUsers(prevUsers => 
-        prevUsers.map(u => 
-          u._id === targetUser._id ? { ...u, isActive: isCurrentlyActive } : u
-        )
-      );
+      toast.error("Error en servidor. Revertiendo...");
+      setUsers(prev => prev.map(u => u._id === targetUser._id ? { ...u, isActive: isCurrentlyActive } : u));
     }
   };
 
   const makeProvider = async (targetUser) => {
-    if(!window.confirm("¿Convertir en Proveedor?")) return;
-    try {
-        await userAPI.updateUserStatus(targetUser._id, { role: 'proveedor' });
-        loadUsers(); // Aquí sí recargamos normal
-    } catch (e) { console.error("Error", e); }
+    // Usamos toast.promise para acciones que demoran
+    toast.promise(
+      userAPI.updateUserStatus(targetUser._id, { role: 'proveedor' }),
+      {
+         loading: 'Procesando...',
+         success: () => {
+             loadUsers();
+             return '¡Usuario ascendido a Proveedor!';
+         },
+         error: 'Error al cambiar rol'
+      }
+    );
   };
 
-  if (loading) return <div style={{padding:'20px'}}>Cargando censo...</div>;
+  if (loading) return <div style={{padding:'40px', textAlign:'center', color:'#666'}}>Cargando directorio...</div>;
 
   return (
-    <div style={{padding: '20px'}}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
-        <h2>👥 Gestión de Usuarios ({users.length})</h2>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h2 style={{margin:0}}>👥 Gestión de Usuarios ({users.length})</h2>
         <input 
           type="text" 
-          placeholder="🔍 Buscar..." 
+          placeholder="🔍 Buscar por nombre o email..." 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{padding:'10px', borderRadius:'5px', border:'1px solid #ccc', width:'300px'}}
+          className={styles.searchBox}
         />
       </div>
 
-      <div style={{overflowX:'auto', background:'white', borderRadius:'8px', boxShadow:'0 2px 5px rgba(0,0,0,0.1)'}}>
-        <table style={{width:'100%', borderCollapse:'collapse'}}>
-          <thead style={{background:'#f4f4f4', borderBottom:'2px solid #ddd'}}>
+      <div className={styles.tableContainer}>
+        <table className={styles.table}>
+          <thead>
             <tr>
-              <th style={thStyle}>Usuario</th>
-              <th style={thStyle}>Rol</th>
-              <th style={thStyle}>Región</th>
-              <th style={thStyle}>Estado</th>
-              <th style={thStyle}>Acciones</th>
+              <th>Usuario</th>
+              <th>Rol</th>
+              <th>Región</th>
+              <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map(u => {
-              // Lógica visual: Si es undefined o true -> Activo
+            {currentItems.map(u => {
               const isUserActive = u.isActive !== false;
-              
+              let roleBadgeClass = styles.roleUser;
+              if(u.role === 'admin') roleBadgeClass = styles.roleAdmin;
+              if(u.role === 'proveedor') roleBadgeClass = styles.roleProv;
+
               return (
-              <tr key={u._id} style={{borderBottom:'1px solid #eee'}}>
-                <td style={tdStyle}>
-                  <strong>{u.name}</strong><br/>
-                  <span style={{fontSize:'0.85rem', color:'#666'}}>{u.email}</span>
+              <tr key={u._id}>
+                <td>
+                  <strong>{u.name}</strong>
+                  <div style={{fontSize:'0.85rem', color:'#95a5a6'}}>{u.email}</div>
                 </td>
-                <td style={tdStyle}>
-                   <span style={{
-                      padding:'4px 8px', borderRadius:'4px', fontSize:'0.8rem', fontWeight:'bold',
-                      background: u.role === 'admin' ? '#e74c3c' : u.role === 'proveedor' ? '#2ecc71' : '#3498db',
-                      color:'white'
-                   }}>
-                      {u.role.toUpperCase()}
-                      {u.adminRole && ` (${u.adminRole})`}
+                <td>
+                   <span className={`${styles.badge} ${roleBadgeClass}`}>
+                      {u.adminRole ? `Admin ${u.adminRole}` : u.role}
                    </span>
                 </td>
-                <td style={tdStyle}>{u.region || 'Nacional'}</td>
+                <td>{u.region || <span style={{color:'#bdc3c7', fontStyle:'italic'}}>N/A</span>}</td>
                 
-                {/* ESTADO */}
-                <td style={tdStyle}>
+                <td>
                    {isUserActive ? (
-                     <span style={{color:'green', fontWeight:'bold', background:'#e8f5e9', padding:'4px 8px', borderRadius:'4px'}}>Activo</span>
+                     <div className={styles.statusActive}>● Activo</div>
                    ) : (
-                     <span style={{color:'red', fontWeight:'bold', background:'#ffebee', padding:'4px 8px', borderRadius:'4px'}}>⛔ BANEADO</span>
+                     <span className={styles.statusBanned}>⛔ SUSPENDIDO</span>
                    )}
                 </td>
 
-                <td style={tdStyle}>
+                <td>
                   {u._id !== currentUser._id && (
-                     <div style={{display:'flex', gap:'10px'}}>
+                     <>
                         <button 
                            onClick={() => toggleBan(u)}
-                           style={{
-                              padding:'6px 12px', 
-                              background: isUserActive ? '#e74c3c' : '#2ecc71', // Rojo si está activo, Verde si está baneado
-                              color:'white', border:'none', borderRadius:'4px', cursor:'pointer', fontWeight:'bold'
-                           }}
+                           className={`${styles.btnAction} ${isUserActive ? styles.btnBan : styles.btnUnban}`}
                         >
                            {isUserActive ? 'Banear' : 'Activar'}
                         </button>
-                        
-                        {currentUser.adminRole === 'superadmin' && u.role === 'user' && (
-                            <button onClick={() => makeProvider(u)} style={{padding:'5px 10px', cursor:'pointer', background:'#3498db', color:'white', border:'none', borderRadius:'4px'}}>🔼 Hacer Prov</button>
-                        )}
-                     </div>
+                     </>
                   )}
                 </td>
               </tr>
@@ -163,9 +148,27 @@ export function UserManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Paginación */}
+      {filteredUsers.length > itemsPerPage && (
+          <div className={styles.pagination}>
+              <button 
+                  disabled={currentPage === 1} 
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  className={styles.pageBtn}
+              >
+                  Anterior
+              </button>
+              <span style={{fontSize:'0.9rem', color:'#666'}}>Pág {currentPage} de {totalPages}</span>
+              <button 
+                  disabled={currentPage === totalPages} 
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  className={styles.pageBtn}
+              >
+                  Siguiente
+              </button>
+          </div>
+      )}
     </div>
   );
 }
-
-const thStyle = { padding: '15px', textAlign: 'left' };
-const tdStyle = { padding: '15px' };

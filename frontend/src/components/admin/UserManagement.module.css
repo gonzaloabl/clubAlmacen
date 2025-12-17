@@ -1,0 +1,110 @@
+.container {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.searchBox {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid #dfe6e9;
+  width: 300px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.searchBox:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* Tabla */
+.tableContainer {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 15px;
+  background-color: #f8f9fa;
+  color: #7f8c8d;
+  font-weight: 600;
+  border-bottom: 2px solid #eee;
+}
+
+.table td {
+  padding: 15px;
+  border-bottom: 1px solid #f1f2f6;
+  color: #2c3e50;
+  vertical-align: middle;
+}
+
+.table tr:hover {
+  background-color: #fcfcfc;
+}
+
+/* Badges */
+.badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.roleAdmin { background: #fadbd8; color: #e74c3c; }
+.roleProv { background: #d5f5e3; color: #2ecc71; }
+.roleUser { background: #d6eaf8; color: #3498db; }
+
+.statusActive { color: #27ae60; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+.statusBanned { color: #c0392b; font-weight: 600; background: #ffebee; padding: 4px 8px; border-radius: 4px; }
+
+/* Botones */
+.btnAction {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btnBan { background: #e74c3c; color: white; }
+.btnUnban { background: #2ecc71; color: white; }
+.btnPromote { background: #3498db; color: white; margin-left: 10px; }
+
+.btnAction:hover { opacity: 0.9; }
+
+/* Paginación */
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  align-items: center;
+}
+
+.pageBtn {
+  padding: 5px 10px;
+  border: 1px solid #dfe6e9;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.pageBtn:disabled { opacity: 0.5; cursor: not-allowed; }

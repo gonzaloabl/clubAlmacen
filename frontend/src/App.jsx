@@ -1,6 +1,7 @@
 // frontend/src/App.jsx
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useEffect, useState } from 'react';
 import { Login } from './components/auth/Login.jsx';
 import { useAuth } from './hooks/useAuth.js';
@@ -20,6 +21,7 @@ import { BlogList } from './components/pages/BlogList.jsx';
 import { Footer } from './components/common/Footer.jsx';
 import { ForumHome } from './components/forum/ForumHome.jsx';
 import { Marketplace } from './components/pages/Marketplace.jsx';
+
 
 // 🆕 IMPORTAR DASHBOARDS
 import { Dashboard } from './components/Dashboard.jsx';
@@ -357,6 +359,7 @@ export function App() {
   // 5. SI TODO ESTÁ BIEN, CARGAMOS LA APP
   return (
     <Router>
+      <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
       <AppContent />
     </Router>
   );

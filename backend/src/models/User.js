@@ -13,13 +13,23 @@ const userSchema = new mongoose.Schema({
     match: [/^\S+@\S+\.\S+$/, "📧 Correo inválido"]
   },
   password: {
-    type: String,
-    required: function() {
-      // Solo requerido para autenticación local, no para Google
-      return this.oauthProvider === 'local';
-    },
-    minlength: [6, "⚠️ Mínimo 6 caracteres"]
+  type: String,
+  required: function() {
+    // Solo requerido si no es Google
+    return this.oauthProvider === 'local';
   },
+  validate: {
+    validator: function(value) {
+      // Si es Google, pasa sin validar
+      if (this.oauthProvider === 'google') return true;
+      
+      // REGEX: 8 chars, 1 mayúscula, 1 minúscula, 1 número, 1 símbolo
+      // (Coincide con lo que pusimos en el Frontend)
+      return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(value);
+    },
+    message: "La contraseña debe tener mín. 8 caracteres, mayúscula, minúscula, número y símbolo."
+  }
+},
   isActive: { 
     type: Boolean, 
     default: true  // Por defecto, todos nacen activos
