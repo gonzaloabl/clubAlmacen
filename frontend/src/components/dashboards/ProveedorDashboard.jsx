@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { productAPI } from '../../services/api'; // Importar API
 import { ProfileSettings } from './ProfileSettings';
 import { KarmaWidget } from '../common/KarmaWidget';
+import { UserAvatar } from '../common/UserAvatar'; // 🆕 Importamos el avatar
 import { ProductManager } from '../products/ProductManager';
 import styles from './ProveedorDashboard.module.css';
 
@@ -112,9 +113,8 @@ export function ProveedorDashboard() {
     <div className={styles.container}>
       <aside className={styles.sidebar}>
         <div className={styles.userInfo}>
-           <div className={styles.avatarPlaceholder} style={{backgroundColor: '#2ecc71'}}>
-              {user?.name?.charAt(0)}
-           </div>
+           {/* 🆕 Usamos el componente de Avatar */}
+           <UserAvatar user={user} size="60px" />
            <p className={styles.userName}>{user?.name}</p>
            <span className={styles.userRole}>Proveedor</span>
         </div>

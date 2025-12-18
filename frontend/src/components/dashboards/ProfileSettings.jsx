@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { userAPI } from '../../services/api';
 import { REGIONES } from '../../utils/regions';
+import toast from 'react-hot-toast';
 import styles from './ProfileSettings.module.css';
 
 export function ProfileSettings() {
@@ -10,20 +11,20 @@ export function ProfileSettings() {
   const [formData, setFormData] = useState({
     name: '', password: '', phone: '', address: '',
     businessName: '', businessDescription: '',
-    website: '', whatsapp: '', region: ''
+    website: '', whatsapp: '', region: '',
+    confirmPassword: ''
   });
   
   // Estados para la imagen
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
 
-  const [message, setMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || '', password: '',
+        name: user.name || '', password: '', confirmPassword: '',
         phone: user.phone || '', address: user.address || '',
         businessName: user.businessName || '', businessDescription: user.businessDescription || '',
         website: user.website || '', whatsapp: user.whatsapp || '',
@@ -43,14 +44,23 @@ export function ProfileSettings() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      return toast.error("Las contraseñas no coinciden");
+    }
+
     setIsSaving(true);
-    setMessage('');
     
     try {
       const dataToSend = new FormData();
       Object.keys(formData).forEach(key => {
+        // Solo enviamos la contraseña si se escribió algo, y excluimos confirmPassword
+        if (key === 'confirmPassword') return;
+        if (key === 'password' && !formData[key]) return;
+        
         dataToSend.append(key, formData[key]);
       });
+
       if (avatarFile) {
         dataToSend.append('avatar', avatarFile);
       }
@@ -58,10 +68,12 @@ export function ProfileSettings() {
       await userAPI.updateProfile(dataToSend);
       await loadUser();
       
-      setMessage('✅ Perfil actualizado correctamente');
+      toast.success('Perfil actualizado correctamente');
+      // Limpiar campos de password
+      setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
     } catch (error) {
       console.error(error);
-      setMessage('❌ Error al actualizar perfil');
+      toast.error('Error al actualizar perfil');
     } finally {
       setIsSaving(false);
     }
@@ -71,19 +83,6 @@ export function ProfileSettings() {
   return (
     <div className={styles.container}>
       <h2 className={styles.mainTitle}>⚙️ Editar Perfil</h2>
-      
-      {/* Mantenemos el estilo inline solo para la lógica de color dinámica, ya que no estaba en el CSS */}
-      {message && (
-        <div style={{
-          padding:'15px', 
-          marginBottom:'20px', 
-          borderRadius:'6px', 
-          background: message.includes('✅') ? '#d4edda' : '#f8d7da', 
-          color: message.includes('✅') ? '#155724' : '#721c24'
-        }}>
-          {message}
-        </div>
-      )}
       
       <form onSubmit={handleSubmit}>
         
@@ -115,6 +114,10 @@ export function ProfileSettings() {
             <div>
                 <label className={styles.label}>Nueva Contraseña (Opcional)</label>
                 <input type="password" className={styles.input} placeholder="Mantener actual" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+            </div>
+            <div>
+                <label className={styles.label}>Confirmar Contraseña</label>
+                <input type="password" className={styles.input} placeholder="Repetir contraseña" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} />
             </div>
         </div>
 

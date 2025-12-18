@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export function GoogleCompleteRegistration() {
   const [role, setRole] = useState('locatario');
-  const [adminCreationCode, setAdminCreationCode] = useState('');
   const { user, completeGoogleRegistration, loading, error, loadUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -39,17 +38,9 @@ export function GoogleCompleteRegistration() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('🔍 Debug antes de enviar:', {
-    role,
-    adminCreationCode,
-    token: localStorage.getItem('token')
-  });
   
     console.log('🔄 Enviando datos de registro:', { role });
-    const result = await completeGoogleRegistration(
-      role, 
-      role === 'admin' ? adminCreationCode : undefined
-    );
+    const result = await completeGoogleRegistration(role);
 
     if (result.success) {
       console.log('✅ Registro completado, redirigiendo a dashboard');
@@ -152,25 +143,7 @@ export function GoogleCompleteRegistration() {
           >
             <option value="locatario">🏠 Locatario</option>
             <option value="proveedor">🚚 Proveedor</option>
-            <option value="admin">👑 Administrador</option>
           </select>
-
-          {role === 'admin' && (
-            <div style={styles.adminNote}>
-              <input
-                type="password"
-                placeholder="Código de administrador"
-                value={adminCreationCode}
-                onChange={(e) => setAdminCreationCode(e.target.value)}
-                style={styles.input}
-                required
-                disabled={loading}
-              />
-              <small style={styles.noteText}>
-                Solo para usuarios autorizados
-              </small>
-            </div>
-          )}
 
           <div style={styles.roleDescriptions}>
             {role === 'locatario' && (
@@ -197,17 +170,6 @@ export function GoogleCompleteRegistration() {
               </div>
             )}
 
-            {role === 'admin' && (
-              <div style={styles.roleDescription}>
-                <h4>👑 Panel de Administración</h4>
-                <ul>
-                  <li>Gestionar usuarios y permisos</li>
-                  <li>Moderar contenido del foro</li>
-                  <li>Ver reportes y estadísticas</li>
-                  <li>Configurar el sistema</li>
-                </ul>
-              </div>
-            )}
           </div>
         </div>
 
@@ -241,54 +203,57 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #292929 0%, #1a1a1a 100%)',
+    background: 'var(--bg-body)',
     padding: '20px'
   },
   form: {
-    background: 'white',
+    background: 'var(--bg-card)',
     padding: '40px',
     borderRadius: '15px',
     width: '100%',
     maxWidth: '500px',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+    border: '1px solid var(--border)'
   },
   header: {
     textAlign: 'center',
     marginBottom: '30px'
   },
   avatar: {
-    marginBottom: '15px'
+    marginBottom: '15px',
+    display: 'inline-block'
   },
   avatarImage: {
     width: '80px',
     height: '80px',
     borderRadius: '50%',
-    border: '3px solid #8d8d8d'
+    border: '3px solid var(--border)'
   },
   avatarPlaceholder: {
     width: '80px',
     height: '80px',
     borderRadius: '50%',
-    background: '#f0f0f0',
+    background: 'var(--bg-body)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: '2rem',
     margin: '0 auto',
-    border: '3px solid #8d8d8d'
+    border: '3px solid var(--border)',
+    color: 'var(--text-muted)'
   },
   title: {
-    color: '#333',
+    color: 'var(--text-main)',
     marginBottom: '10px',
     fontSize: '28px'
   },
   subtitle: {
-    color: '#666',
+    color: 'var(--text-muted)',
     marginBottom: '5px',
     fontSize: '16px'
   },
   description: {
-    color: '#888',
+    color: 'var(--text-muted)',
     fontSize: '14px'
   },
   roleSection: {
@@ -298,74 +263,76 @@ const styles = {
     display: 'block',
     marginBottom: '10px',
     fontWeight: 'bold',
-    color: '#333',
+    color: 'var(--text-main)',
     fontSize: '16px'
   },
   select: {
     width: '100%',
     padding: '12px',
     borderRadius: '8px',
-    border: '2px solid #e0e0e0',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-body)',
+    color: 'var(--text-main)',
     fontSize: '16px',
-    marginBottom: '15px'
-  },
-  adminNote: {
     marginBottom: '15px'
   },
   input: {
     width: '100%',
     padding: '12px',
     borderRadius: '8px',
-    border: '2px solid #e0e0e0',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-body)',
+    color: 'var(--text-main)',
     fontSize: '16px',
     marginBottom: '5px'
   },
   noteText: {
-    color: '#666',
+    color: 'var(--text-muted)',
     fontSize: '12px',
     fontStyle: 'italic'
   },
   roleDescriptions: {
-    background: '#f8f9fa',
+    background: 'var(--bg-body)',
     padding: '20px',
     borderRadius: '8px',
-    border: '1px solid #e9ecef'
+    border: '1px solid var(--border)'
   },
   roleDescription: {
-    color: '#333'
+    color: 'var(--text-muted)'
   },
   button: {
     width: '100%',
     padding: '15px',
-    background: '#8d8d8d',
+    background: 'var(--accent)',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
     fontSize: '16px',
     fontWeight: 'bold',
-    marginBottom: '15px'
+    marginBottom: '15px',
+    cursor: 'pointer'
   },
   note: {
-    background: '#e7f3ff',
+    background: 'rgba(52, 152, 219, 0.1)',
     padding: '15px',
     borderRadius: '8px',
-    border: '1px solid #b3d9ff',
+    border: '1px solid rgba(52, 152, 219, 0.3)',
     fontSize: '14px',
-    color: '#0066cc'
+    color: 'var(--text-main)'
   },
   error: {
-    background: '#ffebee',
-    color: '#c62828',
+    background: 'rgba(231, 76, 60, 0.1)',
+    color: 'var(--danger)',
     padding: '20px',
     borderRadius: '8px',
     marginBottom: '20px',
-    border: '1px solid #ef5350',
+    border: '1px solid var(--danger)',
     textAlign: 'center'
   },
   loading: {
     textAlign: 'center',
     padding: '50px',
-    color: 'white',
+    color: 'var(--text-main)',
     fontSize: '18px'
   }
 };

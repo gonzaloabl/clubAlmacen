@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { ProfileSettings } from './ProfileSettings';
 import { KarmaWidget } from '../common/KarmaWidget'; // ✅ Widget Importado
+import { UserAvatar } from '../common/UserAvatar'; // 🆕 Importamos el avatar
 import styles from './LocatarioDashboard.module.css';
 import { useNavigate } from 'react-router-dom';
 import { SupportPanel } from '../common/SupportPanel';
@@ -74,7 +75,8 @@ export function LocatarioDashboard() {
       {/* SIDEBAR SIMPLE */}
       <aside className={styles.sidebar}>
         <div className={styles.userInfo}>
-           <div className={styles.avatarPlaceholder}>{user?.name?.charAt(0)}</div>
+           {/* 🆕 Usamos el componente de Avatar */}
+           <UserAvatar user={user} size="60px" />
            <p className={styles.userName}>{user?.name}</p>
            <span className={styles.userRole}>Locatario</span>
         </div>

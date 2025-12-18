@@ -21,17 +21,26 @@ export const configurePassport = () => {
       async (accessToken, refreshToken, profile, done) => {
         try {
           console.log('🔐 Perfil de Google recibido:', profile.id);
+
+          // 🛡️ Obtenemos la URL del avatar de forma segura y la limpiamos para mejor calidad
+          const avatarUrl = (profile.photos && profile.photos.length > 0)
+            ? profile.photos[0].value.replace(/=s\d+-c$/, '=s250-c') 
+            : '';
           
           let user = await User.findOne({ googleId: profile.id });
 
           if (user) {
             console.log('✅ Usuario existente encontrado:', user.email);
-            console.log('🔍 DEBUG - Usuario listo para callback:', {
-              id: user._id,
-              email: user.email, 
-              registrationComplete: user.registrationComplete,
-              oauthProvider: user.oauthProvider
-            });
+
+            // 🔄 FIX: Actualizamos el avatar y nombre por si el usuario los cambió en Google.
+            let needsSave = false;
+            if (user.avatar !== avatarUrl && avatarUrl) { user.avatar = avatarUrl; needsSave = true; }
+            if (user.name !== profile.displayName) { user.name = profile.displayName; needsSave = true; }
+            if (needsSave) {
+              await user.save();
+              console.log('🔄 Avatar/Nombre de usuario Google actualizado.');
+            }
+
             return done(null, user);
           }
 
@@ -40,16 +49,10 @@ export const configurePassport = () => {
           if (user) {
             console.log('🔗 Vinculando cuenta existente con Google:', user.email);
             user.googleId = profile.id;
-            user.avatar = profile.photos[0].value;
+            user.avatar = avatarUrl;
             user.isVerified = true;
             user.oauthProvider = 'google';
             await user.save();
-            console.log('🔍 DEBUG - Usuario vinculado listo para callback:', {
-              id: user._id,
-              email: user.email, 
-              registrationComplete: user.registrationComplete,
-              oauthProvider: user.oauthProvider
-            });
             return done(null, user);
           }
 
@@ -58,7 +61,7 @@ export const configurePassport = () => {
             googleId: profile.id,
             name: profile.displayName,
             email: profile.emails[0].value,
-            avatar: profile.photos[0].value,
+            avatar: avatarUrl,
             oauthProvider: 'google',
             role: 'pending',
             registrationComplete: false,
@@ -66,12 +69,6 @@ export const configurePassport = () => {
           });
 
           console.log('✅ Nuevo usuario Google creado:', user.email);
-          console.log('🔍 DEBUG - Nuevo usuario listo para callback:', {
-            id: user._id,
-            email: user.email, 
-            registrationComplete: user.registrationComplete,
-            oauthProvider: user.oauthProvider
-          });
           
           return done(null, user);
         } catch (error) {

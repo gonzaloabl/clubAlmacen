@@ -41,12 +41,6 @@ router.get('/', (req, res, next) => {
 router.get('/callback', (req, res, next) => {
   console.log('🔍 DEBUG - Llegó al callback de Google');
 
-  if (req.user.isActive === false) {
-      console.log('⛔ Usuario Google baneado intentó entrar:', req.user.email);
-      // Redirigimos al login con un parámetro de error específico
-      return res.redirect(`${process.env.FRONTEND_URL}/login?error=account_suspended`);
-    }
-  
   if (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID === 'placeholder_por_ahora') {
     console.log('❌ DEBUG - Google no configurado en callback');
     return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_not_configured`);
@@ -59,6 +53,13 @@ router.get('/callback', (req, res, next) => {
   })(req, res, next);
 }, async (req, res) => {
   try {
+    // 🛡️ FIX: La verificación de baneo va AQUÍ, después de que Passport autentica al usuario.
+    if (req.user.isActive === false) {
+      console.log('⛔ Usuario Google baneado intentó entrar:', req.user.email);
+      // Redirigimos al login con un parámetro de error específico
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=account_suspended`);
+    }
+
     console.log('🔍 DEBUG - Procesando callback exitoso');
     console.log('🔍 DEBUG - Usuario autenticado:', {
       id: req.user._id,

@@ -4,7 +4,12 @@ import bcrypt from 'bcryptjs';
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, "👑 El nombre es obligatorio, mi rey"]
+    // 🛡️ FIX: El nombre no es estrictamente obligatorio al crear con Google,
+    // se puede pedir en un paso de "completar registro".
+    required: [
+      function() { return !this.googleId; }, 
+      "👑 El nombre es obligatorio, mi rey"
+    ]
   },
   email: {
     type: String,
@@ -15,13 +20,15 @@ const userSchema = new mongoose.Schema({
   password: {
   type: String,
   required: function() {
-    // Solo requerido si no es Google
+    // 🛡️ FIX: Si tiene googleId, es usuario de Google -> No requiere password
+    if (this.googleId) return false;
+    // Solo requerido si el provider es local
     return this.oauthProvider === 'local';
   },
   validate: {
     validator: function(value) {
-      // Si es Google, pasa sin validar
-      if (this.oauthProvider === 'google') return true;
+      // 🛡️ FIX: Si es Google (por provider o ID), pasa sin validar
+      if (this.oauthProvider === 'google' || this.googleId) return true;
       
       // REGEX: 8 chars, 1 mayúscula, 1 minúscula, 1 número, 1 símbolo
       // (Coincide con lo que pusimos en el Frontend)

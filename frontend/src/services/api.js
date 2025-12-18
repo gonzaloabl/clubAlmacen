@@ -148,13 +148,15 @@ export const blogAPI = {
     return handleResponse(response);
   },
   create: async (data) => {
+    const isFormData = data instanceof FormData;
+
     const response = await fetch(`${API_URL}/blog`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...getAuthHeader(),
       },
-      body: JSON.stringify(data),
+      body: isFormData ? data : JSON.stringify(data),
     });
     return handleResponse(response);
   },
