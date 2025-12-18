@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { postAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export function ReportList() {
   const [posts, setPosts] = useState([]);
@@ -21,34 +22,50 @@ export function ReportList() {
 
   useEffect(() => { loadReports(); }, []);
 
-  // 👇 VERSIÓN DIRECTA: Sin window.confirm para evitar bloqueo del navegador
-  const handleDismiss = async (id) => {
-    console.log("🚀 Iniciando perdonazo directo...");
+  const executeDismiss = async (id) => {
     try {
       await postAPI.dismissReports(id);
-      console.log("✅ API respondió OK");
-      // Usamos un pequeño truco: cambiar el título en vez de alert si alert está bloqueado
-      document.title = "✅ ¡Post Perdonado!"; 
-      setTimeout(() => document.title = "Admin Panel", 2000);
-      
-      loadReports(); // Recargar lista
+      toast.success("✅ Reportes desestimados");
+      loadReports();
     } catch (error) {
-      console.error("💀 Error:", error);
+      toast.error("Error al procesar");
+      console.error(error);
     }
   };
 
-  const handleDelete = async (id) => {
-    console.log("🚀 Iniciando borrado directo...");
+  const confirmDismiss = (id) => {
+    toast((t) => (
+      <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+        <span style={{fontSize:'0.9rem'}}>🛡️ ¿Mantener el post y limpiar reportes?</span>
+        <div style={{display:'flex', gap:'8px', justifyContent:'flex-end'}}>
+          <button onClick={() => { toast.dismiss(t.id); executeDismiss(id); }} style={{background:'#2ecc71', color:'white', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.85rem'}}>Confirmar</button>
+          <button onClick={() => toast.dismiss(t.id)} style={{background:'#ecf0f1', color:'#333', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.85rem'}}>Cancelar</button>
+        </div>
+      </div>
+    ), { duration: 5000 });
+  };
+
+  const executeDelete = async (id) => {
     try {
       await postAPI.delete(id);
-      console.log("✅ API respondió OK");
-      document.title = "🗑️ ¡Post Borrado!";
-      setTimeout(() => document.title = "Admin Panel", 2000);
-
-      loadReports(); // Recargar lista
+      toast.success("🗑️ Post eliminado");
+      loadReports();
     } catch (error) {
-      console.error("💀 Error:", error);
+      toast.error("Error al eliminar");
+      console.error(error);
     }
+  };
+
+  const confirmDelete = (id) => {
+    toast((t) => (
+      <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+        <span style={{fontSize:'0.9rem'}}>⚠️ ¿Eliminar post permanentemente?</span>
+        <div style={{display:'flex', gap:'8px', justifyContent:'flex-end'}}>
+          <button onClick={() => { toast.dismiss(t.id); executeDelete(id); }} style={{background:'#e74c3c', color:'white', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.85rem'}}>Eliminar</button>
+          <button onClick={() => toast.dismiss(t.id)} style={{background:'#ecf0f1', color:'#333', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.85rem'}}>Cancelar</button>
+        </div>
+      </div>
+    ), { duration: 5000, icon: '🚨' });
   };
 
   if (loading) return <div style={{padding:'20px'}}>Cargando...</div>;
@@ -68,17 +85,17 @@ export function ReportList() {
                 
                 {/* Botones de Acción Directa */}
                 <button 
-                    onClick={() => handleDismiss(post._id)} 
+                    onClick={() => confirmDismiss(post._id)} 
                     style={{background:'#2ecc71', color:'white', border:'none', padding:'5px 10px', cursor:'pointer'}}
                 >
-                    ✅ Perdonar (Directo)
+                    ✅ Perdonar
                 </button>
                 
                 <button 
-                    onClick={() => handleDelete(post._id)} 
+                    onClick={() => confirmDelete(post._id)} 
                     style={{background:'#e74c3c', color:'white', border:'none', padding:'5px 10px', cursor:'pointer'}}
                 >
-                    🗑️ Borrar (Directo)
+                    🗑️ Borrar
                 </button>
               </div>
             </div>

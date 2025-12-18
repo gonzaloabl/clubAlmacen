@@ -8,19 +8,31 @@ import { ProductManager } from '../products/ProductManager';
 import styles from './ProveedorDashboard.module.css';
 
 export function ProveedorDashboard() {
-  const { user } = useAuth();
+  const { user, loadUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('resumen');
   
   // Estado para estadísticas
-  const [stats, setStats] = useState({ productCount: 0 });
+  const [stats, setStats] = useState({ productCount: 0, profileViews: 0 });
 
   // Cargar estadísticas reales
   useEffect(() => {
     const loadStats = async () => {
         try {
-            const products = await productAPI.getMyProducts();
-            setStats({ productCount: products.length });
+            // 1. Refrescar usuario global (Karma actualizado)
+            if (loadUser) await loadUser();
+
+            const token = localStorage.getItem('token');
+            // Cargamos productos y datos frescos del usuario en paralelo
+            const [products, userRes] = await Promise.all([
+                productAPI.getMyProducts(),
+                fetch('http://localhost:3000/api/users/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+            ]);
+            
+            const userData = await userRes.json();
+            setStats({ productCount: products.length, profileViews: userData.profileViews || 0 });
         } catch (error) {
             console.error("Error cargando estadísticas", error);
         }
@@ -35,6 +47,12 @@ export function ProveedorDashboard() {
           <div className={styles.dashboardHome}>
             <KarmaWidget user={user} />
 
+            {/* Tarjeta de Bienvenida (Estilo Locatario) */}
+            <div className={styles.welcomeCard}>
+              <h3>👋 ¡Hola, {user?.name.split(' ')[0]}!</h3>
+              <p>Este es tu centro de operaciones. Gestiona tus productos y revisa tus estadísticas de rendimiento.</p>
+            </div>
+
             <div className={styles.statsRow}>
               <div className={styles.statCard}>
                 {/* Muestra el contador real */}
@@ -42,7 +60,7 @@ export function ProveedorDashboard() {
                 <span className={styles.statLabel}>Productos Activos</span>
               </div>
               <div className={styles.statCard}>
-                <span className={styles.statNumber}>--</span>
+                <span className={styles.statNumber}>{stats.profileViews}</span>
                 <span className={styles.statLabel}>Vistas de Perfil</span>
               </div>
             </div>
@@ -56,6 +74,14 @@ export function ProveedorDashboard() {
               <div className={styles.actionCard} onClick={() => navigate('/forum')}>
                 <span className={styles.actionIcon}>📢</span>
                 <span>Ir al Foro</span>
+              </div>
+              <div className={styles.actionCard} onClick={() => navigate('/noticias')}>
+                <span className={styles.actionIcon}>📰</span>
+                <span>Noticias</span>
+              </div>
+              <div className={styles.actionCard} onClick={() => navigate('/herramientas')}>
+                <span className={styles.actionIcon}>🧰</span>
+                <span>Herramientas</span>
               </div>
             </div>
 

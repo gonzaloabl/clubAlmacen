@@ -10,34 +10,54 @@ import { ProfileSettings } from './ProfileSettings';
 import { ReportList } from '../admin/ReportList';
 import { UserManagement } from '../admin/UserManagement';
 import { AdminManager } from '../admin/AdminManager';
+import { TechnicalDashboard } from '../admin/TechnicalDashboard';
 
 export function AdminDashboard() {
   const { user } = useAuth();
   const [activeView, setActiveView] = useState('overview');
 
   const isSuperAdmin = user?.adminRole === 'superadmin';
+  const isRegional = user?.adminRole === 'regional';
+  const isTechnical = user?.adminRole === 'technical';
 
   // 1. MENU LATERAL LIMPIO (Sin botón técnico)
+  // 1. MENU LATERAL DINÁMICO (Según Roles)
   const sidebarItems = [
     { 
       label: 'Resumen', 
       icon: '📊', 
       isActive: activeView === 'overview', 
       onClick: () => setActiveView('overview') 
-    },
-    { 
-      label: 'Usuarios', 
-      icon: '👥', 
-      isActive: activeView === 'users', 
-      onClick: () => setActiveView('users') 
-    },
-    { 
-      label: 'Reportes', 
-      icon: '🚩', 
-      isActive: activeView === 'reports', 
-      onClick: () => setActiveView('reports') 
     }
   ];
+
+  // GESTIÓN DE COMUNIDAD (Todos los admins moderan)
+  if (isSuperAdmin || isRegional || isTechnical) {
+    sidebarItems.push(
+      { 
+        label: 'Usuarios', 
+        icon: '👥', 
+        isActive: activeView === 'users', 
+        onClick: () => setActiveView('users') 
+      },
+      { 
+        label: 'Reportes', 
+        icon: '🚩', 
+        isActive: activeView === 'reports', 
+        onClick: () => setActiveView('reports') 
+      }
+    );
+  }
+
+  // SOPORTE TÉCNICO (Solo Técnico)
+  if (isTechnical) {
+    sidebarItems.push({ 
+      label: 'Soporte', 
+      icon: '🛠️', 
+      isActive: activeView === 'technical', 
+      onClick: () => setActiveView('technical') 
+    });
+  }
 
   // Solo SuperAdmin ve la gestión de Staff
   if (isSuperAdmin) {
@@ -73,13 +93,14 @@ export function AdminDashboard() {
              <StatsOverview />
 
              {/* FILA 2: Panel Técnico (Servidor, Emergencia) */}
-             <SystemStatus />
+             {(isSuperAdmin || isTechnical) && <SystemStatus />}
              
           </div>
         );
       case 'users': return <UserManagement />;
       case 'reports': return <ReportList />;
       case 'profile': return <ProfileSettings />;
+      case 'technical': return <TechnicalDashboard />;
       case 'admins': return isSuperAdmin ? <AdminManager /> : <div>Acceso denegado</div>;
       default: return <div>Vista no encontrada</div>;
     }
@@ -90,7 +111,8 @@ export function AdminDashboard() {
     users: 'Gestión de Usuarios',
     reports: 'Moderación',
     admins: 'Equipo Administrativo',
-    profile: 'Mi Perfil'
+    profile: 'Mi Perfil',
+    technical: 'Soporte Técnico'
   };
 
   return (

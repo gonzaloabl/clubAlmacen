@@ -37,6 +37,28 @@
 
 .mainContent { flex: 1; padding: 40px; overflow-y: auto; }
 .dashboardHome { max-width: 900px; margin: 0 auto; }
+.sectionTitle {
+  color: var(--text-muted);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 40px;
+  margin-bottom: 15px;
+}
+
+/* Tarjeta de Bienvenida (Estilo Locatario) */
+.welcomeCard {
+  background: var(--bg-card);
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-top: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.welcomeCard h3 { margin: 0 0 10px 0; color: var(--text-main); font-size: 1.4rem; }
+.welcomeCard p { margin: 0; color: var(--text-muted); line-height: 1.6; }
+
 
 .header h1 { margin-top: 0; }
 
@@ -69,6 +91,15 @@
   color: var(--text-muted);
 }
 
+/* Grid de Acciones Rápidas */
+.quickActionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+}
+.actionCard { background: var(--bg-card); border: 1px solid var(--border); padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.actionCard:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+.actionIcon { display: block; font-size: 1.8rem; margin-bottom: 10px; }
 .infoBox {
   background-color: rgba(241, 196, 15, 0.1); /* Amarillo suave */
   border: 1px solid #f1c40f;

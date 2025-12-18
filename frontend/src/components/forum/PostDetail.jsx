@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { postAPI } from '../../services/api';
 import { formatRelativeTime } from '../../utils/helpers';
 import { UserAvatar } from '../common/UserAvatar';
 import { getKarmaRank } from '../../utils/karma';
 import styles from './PostDetail.module.css';
+import toast from 'react-hot-toast';
 
 export function PostDetail() {
   const { id } = useParams();
@@ -43,7 +44,7 @@ export function PostDetail() {
 
   // 1. VOTAR EN EL POST PRINCIPAL (Up/Down)
   const handleVote = async (value) => {
-    if (!user) return alert('Debes iniciar sesión para votar');
+    if (!user) return toast.error('Debes iniciar sesión para votar');
     try {
       // Optimismo UI: Podríamos actualizar el estado localmente antes, 
       // pero por seguridad esperamos la respuesta del backend que ya calcula la matemática.
@@ -62,7 +63,7 @@ export function PostDetail() {
 
   // 2. LIKE EN COMENTARIO
   const handleCommentLike = async (commentId) => {
-    if (!user) return alert('Debes iniciar sesión');
+    if (!user) return toast.error('Debes iniciar sesión');
     try {
       const updatedLikes = await postAPI.likeComment(post._id, commentId);
       
@@ -79,27 +80,39 @@ export function PostDetail() {
   };
 
   const handleReport = async () => {
-    if (!user) return alert('Debes iniciar sesión para reportar');
+    if (!user) return toast.error('Debes iniciar sesión para reportar');
     const reason = prompt("¿Por qué reportas este contenido?");
     if (reason) {
+      const toastId = toast.loading('Enviando reporte...');
       try {
         await postAPI.report(post._id, { reason: 'other', description: reason });
-        alert('✅ Reporte enviado.');
+        toast.success('✅ Reporte enviado', { id: toastId });
       } catch (error) {
-        alert('❌ Error al reportar.');
+        toast.error('❌ Error al reportar', { id: toastId });
       }
     }
   };
 
-  const handleDelete = async () => {
-    if(!window.confirm("¿Borrar este tema permanentemente?")) return;
+  const executeDelete = async () => {
     try {
       await postAPI.delete(post._id);
-      alert('✅ Eliminado.');
+      toast.success('✅ Eliminado');
       navigate('/forum');
     } catch (error) {
-      alert('❌ No tienes permisos.');
+      toast.error('❌ No tienes permisos');
     }
+  };
+
+  const handleDelete = () => {
+    toast((t) => (
+      <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+        <span style={{fontSize:'0.9rem'}}>⚠️ ¿Borrar este tema permanentemente?</span>
+        <div style={{display:'flex', gap:'8px', justifyContent:'flex-end'}}>
+          <button onClick={() => { toast.dismiss(t.id); executeDelete(); }} style={{background:'#e74c3c', color:'white', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.85rem'}}>Eliminar</button>
+          <button onClick={() => toast.dismiss(t.id)} style={{background:'#ecf0f1', color:'#333', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.85rem'}}>Cancelar</button>
+        </div>
+      </div>
+    ), { duration: 5000, icon: '🗑️' });
   };
 
   const canDelete = (postAuthorId) => {
@@ -238,7 +251,13 @@ export function PostDetail() {
       {/* ... Header igual ... */}
       <div className={styles.threadHeader}>
         <div className={styles.headerContent}>
-          <span className={styles.categoryLabel}>📁 {post.category?.name}</span>
+          {/* 🆕 BREADCRUMBS */}
+          <div style={{fontSize:'0.85rem', color:'rgba(255,255,255,0.7)', marginBottom:'10px'}}>
+             <Link to="/forum" style={{color:'inherit', textDecoration:'none'}}>Foro</Link> 
+             {' > '}
+             <Link to={`/forum/category/${post.category?._id}`} style={{color:'inherit', textDecoration:'none'}}>{post.category?.name}</Link>
+          </div>
+
           <h1 className={styles.threadTitle}>{post.title}</h1>
         </div>
       </div>

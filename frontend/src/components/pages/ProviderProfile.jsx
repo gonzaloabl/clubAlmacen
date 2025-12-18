@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { userAPI, productAPI } from '../../services/api';
 
@@ -7,6 +7,7 @@ export function ProviderProfile() {
   const [provider, setProvider] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const viewRegistered = useRef(false); // 🛡️ Evita doble conteo
 
   useEffect(() => {
     const loadData = async () => {
@@ -15,6 +16,12 @@ export function ProviderProfile() {
         setProvider(userData);
         const prodData = await productAPI.getProductsByProvider(id);
         setProducts(prodData);
+
+        // Registrar vista solo una vez
+        if (!viewRegistered.current) {
+            viewRegistered.current = true;
+            await fetch(`http://localhost:3000/api/users/${id}/view`, { method: 'POST' });
+        }
       } catch (error) {
         console.error("Error cargando perfil:", error);
       } finally {

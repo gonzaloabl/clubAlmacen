@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { userAPI } from '../../services/api';
-import { REGIONES } from '../../utils/regions';
+import { DirectoryLayout } from './DirectoryLayout';
 
 export function LocatariosDirectory() {
   const [locatarios, setLocatarios] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [regionFilter, setRegionFilter] = useState('Todas');
 
   useEffect(() => {
     const loadLocatarios = async () => {
@@ -22,52 +20,14 @@ export function LocatariosDirectory() {
     loadLocatarios();
   }, []);
 
-  const filtered = locatarios.filter(l => {
-    const matchesSearch = (l.businessName || l.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (l.address || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesRegion = regionFilter === 'Todas' || 
-                          l.region === regionFilter
-
-    return matchesSearch && matchesRegion;
-  });
-
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Comercios del Barrio</h1>
-        <p style={styles.subtitle}>Conoce a los almacenes y negocios que dan vida a nuestra comunidad.</p>
-        
-        <div style={styles.searchContainer}>
-            <input 
-              type="text" 
-              placeholder="🔍 Buscar por nombre o dirección..." 
-              style={styles.searchBar}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <select 
-                value={regionFilter}
-                onChange={(e) => setRegionFilter(e.target.value)}
-                style={styles.regionSelect}
-            >
-                <option value="Todas">🇨🇱 Todo Chile</option>
-                {REGIONES.filter(r => r !== 'Nacional').map(r => (
-                    <option key={r} value={r}>{r}</option>
-                ))}
-            </select>
-        </div>
-      </div>
-
-      <div style={styles.gridContainer}>
-        {loading ? (
-          <p style={{textAlign:'center', color:'var(--text-muted)'}}>Cargando comercios...</p>
-        ) : filtered.length === 0 ? (
-          <div style={styles.emptyState}>
-            <h3>No se encontraron comercios</h3>
-            <p>Prueba buscando en otra región.</p>
-          </div>
-        ) : (
-          filtered.map(loc => {
+    <DirectoryLayout
+      title="Comercios del Barrio"
+      subtitle="Conoce a los almacenes y negocios que dan vida a nuestra comunidad."
+      items={locatarios}
+      loading={loading}
+      searchPlaceholder="🔍 Buscar por nombre o dirección..."
+      renderItem={(loc) => {
             // 🔧 CORRECCIÓN: Definimos cuál es el número de contacto disponible
             const contactNumber = loc.whatsapp || loc.phone;
 
@@ -131,25 +91,12 @@ export function LocatariosDirectory() {
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
-    </div>
+      }}
+    />
   );
 }
 
 const styles = {
-  container: { minHeight: '100vh', background: 'var(--bg-body)', paddingBottom: '60px' },
-  header: { background: 'var(--bg-sidebar)', color: 'white', padding: '60px 20px', textAlign: 'center', marginBottom: '40px' },
-  title: { fontSize: '2.5rem', margin: '0 0 10px 0' },
-  subtitle: { opacity: 0.9, marginBottom: '30px' },
-  
-  searchContainer: { display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '700px', margin: '0 auto' },
-  searchBar: { padding: '15px 25px', flex: 2, minWidth: '200px', borderRadius: '30px', border: 'none', fontSize: '1rem', outline: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' },
-  regionSelect: { padding: '15px 25px', flex: 1, minWidth: '150px', borderRadius: '30px', border: 'none', fontSize: '1rem', outline: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', cursor: 'pointer' },
-
-  gridContainer: { maxWidth: '1200px', margin: '0 auto', padding: '0 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '30px' },
-  
   card: { background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)', borderTop: '4px solid var(--accent)', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', transition: 'transform 0.2s', height: '100%' },
   
   cardHeader: { padding: '20px', display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px dashed var(--border)', background: 'var(--bg-body)' },
@@ -184,6 +131,4 @@ const styles = {
   },
   
   disabledBtn: { display: 'block', width: '100%', padding: '10px', background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: '6px', textAlign: 'center', fontSize: '0.9rem' },
-  
-  emptyState: { gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }
 };

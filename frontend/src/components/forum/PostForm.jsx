@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useRole } from '../../hooks/useRole';
 import { postAPI, categoryAPI } from '../../services/api';
 import { REGIONES } from '../../utils/regions';
 import styles from './PostForm.module.css';
 
 export function PostForm() {
   const { user } = useAuth();
-  const { isAdmin } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -65,8 +63,8 @@ export function PostForm() {
     setLoading(true);
     setError('');
 
-    if (!title.trim() || !content.trim()) {
-      setError('El título y contenido son obligatorios');
+    if (!title.trim() || !content.trim() || !category) {
+      setError('Título, contenido y categoría son obligatorios');
       setLoading(false);
       return;
     }
@@ -86,7 +84,7 @@ export function PostForm() {
       }
 
       await postAPI.create(formData);
-      navigate('/forum');
+      navigate(`/forum/category/${category}`);
     } catch (err) {
       setError('Error al crear la publicación: ' + err.message);
     } finally {
@@ -113,7 +111,12 @@ export function PostForm() {
 
         if (!isVisible) return null;
 
-        const groupCats = categories.filter(c => c.group === key);
+        const groupCats = categories.filter(c => c.group === key).filter(cat => {
+            // 🛡️ Ocultar categoría "Anuncios Oficiales" si no es admin
+            if (cat.name.toLowerCase().includes('anuncios oficiales') && !isAdminUser) return false;
+            return true;
+        });
+
         if (groupCats.length === 0) return null;
 
         return (
@@ -143,28 +146,6 @@ export function PostForm() {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           
-          {isAdmin && (
-            <div className={styles.adminSection}>
-              <label className={styles.label}>Tipo de Publicación (Admin)</label>
-              <div className={styles.radioGroup}>
-                <label className={styles.radioLabel}>
-                  <input 
-                    type="radio" name="postType" value="forum" 
-                    checked={type === 'forum'} onChange={(e) => setType(e.target.value)}
-                  /> 
-                  💬 Foro Normal
-                </label>
-                <label className={styles.radioLabel}>
-                  <input 
-                    type="radio" name="postType" value="blog" 
-                    checked={type === 'blog'} onChange={(e) => setType(e.target.value)}
-                  /> 
-                  📢 Comunicado Oficial
-                </label>
-              </div>
-            </div>
-          )}
-
           <div className={styles.group}>
             <label className={styles.label}>Título de tu tema</label>
             <input

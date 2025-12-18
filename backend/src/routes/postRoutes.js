@@ -144,6 +144,14 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
     await post.populate('author', 'name email role adminRole region avatar');
     await post.populate('category', 'name color');
     
+    // 📈 INCREMENTAR CONTADOR DE POSTS DEL USUARIO
+    // Envolvemos en try/catch para evitar que un error en stats bloquee la respuesta
+    try {
+        await User.findByIdAndUpdate(req.user._id, { $inc: { postCount: 1 } });
+    } catch (statsErr) {
+        console.error("⚠️ Error actualizando contador de posts:", statsErr);
+    }
+
     res.status(201).json(post);
   } catch (error) {
     console.error("Error creando post:", error);
@@ -269,10 +277,21 @@ router.delete('/:id', protect, async (req, res) => {
     const authorExists = !!post.author;
     const isAuthor = authorExists && post.author._id.toString() === req.user._id.toString();
     const isSuperAdmin = req.user.role === 'admin' && req.user.adminRole === 'superadmin';
+    const isTechnicalAdmin = req.user.role === 'admin' && req.user.adminRole === 'technical';
     const isRegionalAdmin = authorExists && req.user.role === 'admin' && req.user.adminRole === 'regional' && req.user.region === post.author.region;
 
-    if (isAuthor || isSuperAdmin || isRegionalAdmin || (!authorExists && isSuperAdmin)) {
+    if (isAuthor || isSuperAdmin || isTechnicalAdmin || isRegionalAdmin || (!authorExists && (isSuperAdmin || isTechnicalAdmin))) {
       await Post.findByIdAndDelete(req.params.id);
+      
+      // 📉 DECREMENTAR CONTADOR (Si el autor existe)
+      if (authorExists) {
+          try {
+              await User.findByIdAndUpdate(post.author._id, { $inc: { postCount: -1 } });
+          } catch (e) {
+              console.error("⚠️ Error actualizando contador de posts:", e);
+          }
+      }
+
       res.json({ message: '✅ Publicación eliminada' });
     } else {
       res.status(403).json({ message: '⛔ No tienes permiso' });

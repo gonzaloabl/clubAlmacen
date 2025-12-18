@@ -22,3 +22,15 @@ export const COMMUNITY_STATS = {
   MESSAGES: '2.3K',
   ACTIVE: '24/7'
 };
+
+export const PRODUCT_CATEGORIES = [
+  'Abarrotes', 
+  'Bebidas', 
+  'Lácteos', 
+  'Congelados', 
+  'Limpieza', 
+  'Cuidado Personal', 
+  'Snacks', 
+  'Cigarros', 
+  'Otros'
+];

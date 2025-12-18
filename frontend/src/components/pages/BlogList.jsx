@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { blogAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
-import { useRole } from '../../hooks/useRole';
-import { formatRelativeTime } from '../../utils/helpers';
+import toast from 'react-hot-toast';
 
 export function BlogList() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { isAdmin } = useRole();
+  const { user } = useAuth();
+  
+  // 🔒 Solo SuperAdmin ve los controles
+  const isSuperAdmin = user?.adminRole === 'superadmin';
   
   // Formulario Admin
   const [formData, setFormData] = useState({ title: '', content: '', tag: 'Novedad' });
+  const [image, setImage] = useState(null); // 📸 Estado imagen
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadData = async () => {
@@ -33,23 +36,37 @@ export function BlogList() {
     if(!formData.title || !formData.content) return;
     setIsSubmitting(true);
     try {
-      await blogAPI.create(formData);
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('content', formData.content);
+      data.append('tag', formData.tag);
+      if (image) data.append('image', image);
+
+      await blogAPI.create(data); // La API ya maneja FormData si se lo pasamos
+      
       setFormData({ title: '', content: '', tag: 'Novedad' });
+      setImage(null);
       loadData();
-      alert('✅ Publicado en el muro');
+      toast.success('✅ Publicado en el muro');
     } catch (err) {
-      alert('Error al publicar');
+      toast.error('Error al publicar');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if(confirm('¿Eliminar este comunicado?')) {
+    if(window.confirm('¿Eliminar este comunicado?')) {
+      try {
         await blogAPI.delete(id);
+        toast.success('Eliminado');
         loadData();
+      } catch (e) { toast.error('Error al eliminar'); }
     }
   };
+
+  const featuredPost = posts[0];
+  const otherPosts = posts.slice(1);
 
   return (
     <div style={styles.container}>
@@ -71,10 +88,47 @@ export function BlogList() {
           ) : posts.length === 0 ? (
             <div style={styles.empty}>No hay comunicados aún.</div>
           ) : (
-            // AQUÍ ESTÁ EL CAMBIO A GRID
-            <div style={styles.newsGrid}>
-              {posts.map(post => (
-                <div key={post._id} style={styles.newsCard}>
+            <>
+              {/* 🌟 1. NOTICIA DESTACADA (HERO) */}
+              {featuredPost && (
+                <div style={styles.featuredCard}>
+                  <div style={styles.featuredImageContainer}>
+                    {featuredPost.image ? (
+                      <img src={featuredPost.image} alt="Destacado" style={styles.featuredImage} />
+                    ) : (
+                      <div style={styles.featuredPlaceholder}>📢</div>
+                    )}
+                    <div style={styles.featuredOverlay}>
+                      <span style={{
+                         ...styles.tag, 
+                         background: featuredPost.tag === 'Importante' ? 'var(--danger)' : 'var(--accent)',
+                         marginBottom: '10px',
+                         display: 'inline-block'
+                      }}>
+                        {featuredPost.tag}
+                      </span>
+                      <h2 style={styles.featuredTitle}>{featuredPost.title}</h2>
+                      <p style={styles.featuredExcerpt}>{featuredPost.content.substring(0, 150)}...</p>
+                      
+                      <div style={styles.featuredMeta}>
+                        <span>📅 {new Date(featuredPost.createdAt).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                        {isSuperAdmin && (
+                          <button onClick={() => handleDelete(featuredPost._id)} style={styles.btnDeleteHero}>
+                            🗑️ Eliminar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 📰 2. RESTO DE NOTICIAS (GRID) */}
+              {otherPosts.length > 0 && <h3 style={styles.sectionTitle}>Anuncios Anteriores</h3>}
+              
+              <div style={styles.newsGrid}>
+                {otherPosts.map(post => (
+                  <div key={post._id} style={styles.newsCard}>
                   
                   {/* Cabecera de la Tarjeta: Tag y Fecha */}
                   <div style={styles.cardTop}>
@@ -89,6 +143,11 @@ export function BlogList() {
                     </span>
                   </div>
 
+                  {/* 📸 Imagen del Comunicado */}
+                  {post.image && (
+                    <img src={post.image} alt="Adjunto" style={styles.cardImage} />
+                  )}
+
                   {/* Cuerpo */}
                   <div style={styles.cardBody}>
                     <h3 style={styles.newsTitle}>{post.title}</h3>
@@ -100,20 +159,21 @@ export function BlogList() {
                      <small style={{color:'var(--text-muted)'}}>
                        Por <strong>{post.author?.name || 'Admin'}</strong>
                      </small>
-                     {isAdmin && (
+                     {isSuperAdmin && (
                         <button onClick={() => handleDelete(post._id)} style={styles.btnDelete}>🗑️</button>
                      )}
                   </div>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
         {/* SIDEBAR DERECHO (Se mantiene igual) */}
         <aside style={styles.sidebar}>
           
-          {isAdmin && (
+          {isSuperAdmin && (
             <div style={styles.widgetForm}>
               <h3 style={styles.widgetTitle}>✍️ Publicar</h3>
               <form onSubmit={handlePublish} style={{display:'flex', flexDirection:'column', gap:'10px'}}>
@@ -141,6 +201,14 @@ export function BlogList() {
                   style={styles.textarea}
                   value={formData.content}
                   onChange={e => setFormData({...formData, content: e.target.value})}
+                />
+
+                {/* Input de Imagen Simple */}
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => setImage(e.target.files[0])}
+                  style={{fontSize:'0.8rem'}}
                 />
 
                 <button type="submit" style={styles.btnPublish} disabled={isSubmitting}>
@@ -183,6 +251,32 @@ const styles = {
 
   mainColumn: { minWidth: 0 },
 
+  // --- 🌟 ESTILOS DESTACADOS (HERO) ---
+  featuredCard: {
+    marginBottom: '40px',
+    borderRadius: '16px',
+    overflow: 'hidden',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+    position: 'relative',
+    background: 'var(--bg-card)'
+  },
+  featuredImageContainer: { position: 'relative', height: '400px', background: '#2c3e50' },
+  featuredImage: { width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }, // Oscurecemos imagen para leer texto
+  featuredPlaceholder: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5rem', background: 'linear-gradient(45deg, #3498db, #2c3e50)' },
+  
+  featuredOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: '40px',
+    background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+    color: 'white'
+  },
+  featuredTitle: { fontSize: '2.5rem', margin: '0 0 15px 0', lineHeight: 1.1, textShadow: '0 2px 4px rgba(0,0,0,0.3)' },
+  featuredExcerpt: { fontSize: '1.1rem', opacity: 0.9, maxWidth: '800px', marginBottom: '20px', lineHeight: 1.5 },
+  featuredMeta: { display: 'flex', alignItems: 'center', gap: '20px', fontSize: '0.9rem', opacity: 0.8 },
+
   // --- 🆕 GRID SYSTEM PARA NOTICIAS ---
   newsGrid: { 
     display: 'grid', 
@@ -190,6 +284,8 @@ const styles = {
     gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', 
     gap: '20px' 
   },
+
+  sectionTitle: { color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '20px', marginTop: '0' },
   
   // --- 🆕 ESTILO TARJETA VERTICAL ---
   newsCard: { 
@@ -234,6 +330,12 @@ const styles = {
     textTransform: 'uppercase'
   },
 
+  cardImage: {
+    width: '100%',
+    height: '200px',
+    objectFit: 'cover'
+  },
+
   cardBody: {
     padding: '20px',
     flex: 1 // Esto empuja el footer hacia abajo
@@ -270,6 +372,7 @@ const styles = {
     fontSize: '1rem',
     padding: '5px'
   },
+  btnDeleteHero: { background: 'rgba(231, 76, 60, 0.2)', color: '#ff6b6b', border: '1px solid #e74c3c', padding: '5px 15px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' },
 
   // Sidebar Styles (Igual que antes)
   sidebar: { display: 'flex', flexDirection: 'column', gap: '20px' },

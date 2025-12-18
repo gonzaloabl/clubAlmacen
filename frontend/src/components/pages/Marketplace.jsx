@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { productAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth'; // 👈 Importamos esto para saber si está logueado
+import { REGIONES } from '../../utils/regions'; // 🌍 Importamos regiones
+import { PRODUCT_CATEGORIES } from '../../utils/constants';
 
 export function Marketplace() {
   const { user } = useAuth(); // Obtenemos el usuario actual
@@ -9,9 +11,10 @@ export function Marketplace() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('Todas');
+  const [regionFilter, setRegionFilter] = useState('Todas'); // 🆕 Filtro de Región
 
-  // Listado de categorías (puedes ampliarlo después)
-  const categories = ['Todas', 'Abarrotes', 'Bebidas', 'Lácteos', 'Limpieza', 'Congelados', 'General'];
+  // 📋 Categorías unificadas (Agregamos 'Todas' al principio para el filtro)
+  const categories = ['Todas', ...PRODUCT_CATEGORIES];
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -33,7 +36,10 @@ export function Marketplace() {
   const filteredProducts = products.filter(prod => {
     const matchesSearch = prod.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'Todas' || prod.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    // 🌍 Filtramos por la región del PROVEEDOR
+    const matchesRegion = regionFilter === 'Todas' || prod.provider?.region === regionFilter;
+    
+    return matchesSearch && matchesCategory && matchesRegion;
   });
 
   return (
@@ -60,6 +66,18 @@ export function Marketplace() {
                 >
                     {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
+                
+                {/* 🆕 Selector de Región */}
+                <select 
+                    value={regionFilter} 
+                    onChange={(e) => setRegionFilter(e.target.value)}
+                    style={styles.categorySelect}
+                >
+                    <option value="Todas">🌍 Todo Chile</option>
+                    {REGIONES.filter(r => r !== 'Nacional').map(r => (
+                        <option key={r} value={r}>{r}</option>
+                    ))}
+                </select>
             </div>
         </div>
       </div>
@@ -85,7 +103,10 @@ export function Marketplace() {
                             ) : (
                                 <span style={{fontSize:'3rem'}}>📦</span>
                             )}
-                            <span style={styles.categoryBadge}>{prod.category || 'Varios'}</span>
+                            <div style={styles.badgesContainer}>
+                                <span style={styles.categoryBadge}>{prod.category || 'Varios'}</span>
+                                {prod.provider?.region && <span style={styles.regionBadge}>📍 {prod.provider.region}</span>}
+                            </div>
                         </div>
 
                         {/* INFO */}
@@ -163,7 +184,9 @@ const styles = {
 
   imageContainer: { height: '180px', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' },
   image: { width: '100%', height: '100%', objectFit: 'cover' },
-  categoryBadge: { position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 8px', borderRadius: '12px', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 'bold' },
+  badgesContainer: { position: 'absolute', top: '10px', right: '10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' },
+  categoryBadge: { background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 8px', borderRadius: '12px', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 'bold' },
+  regionBadge: { background: 'rgba(52, 152, 219, 0.9)', color: 'white', padding: '4px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold' },
 
   cardBody: { padding: '20px', flex: 1 },
   prodName: { margin: '0 0 10px 0', fontSize: '1.1rem', color: 'var(--text-main)', lineHeight: '1.4' },

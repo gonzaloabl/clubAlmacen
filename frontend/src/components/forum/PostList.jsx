@@ -9,6 +9,7 @@ import styles from './PostList.module.css';
 
 export function PostList() {
   const [posts, setPosts] = useState([]);
+  const [allCategories, setAllCategories] = useState([]); // 🆕 Para el menú lateral
   const [currentCategory, setCurrentCategory] = useState(null); // Para guardar info de la categoría actual
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -23,13 +24,6 @@ export function PostList() {
   
   const searchQuery = searchParams.get('search');
 
-  // 1. EFECTO: Detectar región del usuario al cargar
-  useEffect(() => {
-    if (user?.region) {
-      setSelectedRegion(user.region);
-    }
-  }, [user]);
-
   // 2. EFECTO: Cargar Datos
   useEffect(() => {
     const loadData = async () => {
@@ -38,6 +32,7 @@ export function PostList() {
         // A. Si hay categoría en la URL, buscamos sus datos (Nombre, Descripción, Grupo)
         if (categoryId) {
             const allCats = await categoryAPI.getAll();
+            setAllCategories(allCats); // Guardamos todas para navegar
             const foundCat = allCats.find(c => c._id === categoryId);
             setCurrentCategory(foundCat);
         } else {
@@ -95,6 +90,9 @@ export function PostList() {
     // Si no estamos en una categoría específica (Hall), permitimos ir al form (allí se valida)
     if (!currentCategory) return true; 
 
+    // 🛡️ NUEVO: Bloquear "Anuncios Oficiales" para no admins
+    if (currentCategory.name.toLowerCase().includes('anuncios oficiales')) return false;
+
     const group = currentCategory.group; // 'locatarios', 'proveedores', 'comunidad'
     
     // Reglas estrictas por rol
@@ -104,15 +102,24 @@ export function PostList() {
     return true; // Comunidad está abierta a todos
   };
 
+  // 🆕 Obtener categorías hermanas para el sidebar
+  const siblingCategories = currentCategory 
+    ? allCategories.filter(c => c.group === currentCategory.group && c._id !== currentCategory._id)
+    : [];
+
   return (
     <div className={styles.container}>
       
       {/* HEADER DINÁMICO */}
       <div className={styles.forumHeader}>
         <div style={{maxWidth: '1200px', margin: '0 auto', textAlign: 'left', marginBottom: '10px'}}>
-            <Link to="/forum" style={{color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontSize: '0.9rem'}}>
-                ← Volver al Hall Principal
+            {/* 🆕 BREADCRUMBS / MIGAS DE PAN */}
+            <Link to="/forum" style={{color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontSize: '0.9rem', fontWeight:'500'}}>
+                Foro
             </Link>
+            {currentCategory && (
+                <span style={{color: 'rgba(255,255,255,0.6)', margin: '0 8px'}}> / {currentCategory.group.charAt(0).toUpperCase() + currentCategory.group.slice(1)} / </span>
+            )}
         </div>
 
         <h1 className={styles.headerTitle}>
@@ -129,11 +136,25 @@ export function PostList() {
         <div className={styles.mainColumn}>
           
           <div className={styles.toolbar}>
+            {/* TABS DE ORDENAMIENTO */}
             <div className={styles.tabs}>
               <div className={`${styles.tab} ${filter === 'all' ? styles.activeTab : ''}`} onClick={() => setFilter('all')}>Recientes</div>
               <div className={`${styles.tab} ${filter === 'popular' ? styles.activeTab : ''}`} onClick={() => setFilter('popular')}>Populares</div>
               <div className={`${styles.tab} ${filter === 'unanswered' ? styles.activeTab : ''}`} onClick={() => setFilter('unanswered')}>Sin Respuesta</div>
             </div>
+
+            {/* 🆕 FILTRO DE REGIÓN (Movido aquí para visibilidad) */}
+            <select 
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                style={{padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-main)', cursor:'pointer', fontSize:'0.85rem', outline:'none'}}
+            >
+                <option value="Todas">🌐 Todo Chile</option>
+                <option value="Nacional">🇨🇱 Nacional</option>
+                {REGIONES.filter(r => r !== 'Nacional').map(r => (
+                    <option key={r} value={r}>{r}</option>
+                ))}
+            </select>
           </div>
 
           <div className={styles.topicList}>
@@ -225,22 +246,25 @@ export function PostList() {
             )}
           </div>
 
-          {/* Filtro por Región */}
+          {/* 🆕 NAVEGACIÓN ENTRE CATEGORÍAS (Estilo Foro Clásico) */}
+          {currentCategory && siblingCategories.length > 0 && (
           <div className={styles.widget}>
-            <h4 className={styles.widgetTitle}>Filtrar por Región</h4>
-            <select 
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className={styles.searchInput}
-                style={{cursor:'pointer'}}
-            >
-                <option value="Todas">🌐 Ver Todo Chile</option>
-                <option value="Nacional">🇨🇱 Temas Nacionales</option>
-                {REGIONES.filter(r => r !== 'Nacional').map(r => (
-                    <option key={r} value={r}>{r}</option>
+            <h4 className={styles.widgetTitle}>Más en {currentCategory.group}</h4>
+            <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                {siblingCategories.map(cat => (
+                    <Link 
+                        key={cat._id} 
+                        to={`/forum/category/${cat._id}`}
+                        style={{textDecoration:'none', color:'var(--text-main)', fontSize:'0.9rem', padding:'6px', borderRadius:'4px', display:'flex', alignItems:'center', gap:'8px', transition:'background 0.2s'}}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-body)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                        <span>{cat.icon || '📁'}</span> {cat.name}
+                    </Link>
                 ))}
-            </select>
+            </div>
           </div>
+          )}
 
           {/* Búsqueda */}
           <div className={styles.widget}>

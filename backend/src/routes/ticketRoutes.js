@@ -52,4 +52,30 @@ router.get('/all', protect, async (req, res) => {
   }
 });
 
+// @desc    Actualizar ticket (Responder/Cerrar) - SOLO ADMIN
+// @route   PUT /api/tickets/:id
+router.put('/:id', protect, async (req, res) => {
+  try {
+    // Solo admins pueden responder
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'No autorizado' });
+    }
+
+    const { status, adminResponse } = req.body;
+    const ticket = await Ticket.findById(req.params.id);
+
+    if (!ticket) {
+        return res.status(404).json({ message: 'Ticket no encontrado' });
+    }
+
+    if (status) ticket.status = status;
+    if (adminResponse) ticket.adminResponse = adminResponse;
+
+    const updatedTicket = await ticket.save();
+    res.json(updatedTicket);
+  } catch (error) {
+    res.status(500).json({ message: 'Error actualizando ticket', error: error.message });
+  }
+});
+
 export default router;

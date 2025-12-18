@@ -56,7 +56,10 @@ router.get('/me', protect, (req, res) => {
     avatar: req.user.avatar,
     oauthProvider: req.user.oauthProvider,
     registrationComplete: req.user.registrationComplete,
-    isVerified: req.user.isVerified
+    isVerified: req.user.isVerified,
+    karma: req.user.karma,       // 👈 Ahora sí enviamos el karma
+    postCount: req.user.postCount, // 👈 Y el contador de posts
+    profileViews: req.user.profileViews // 🆕 Vistas de perfil
   });
 });
 
@@ -264,10 +267,22 @@ router.get('/public/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
       .select('name businessName businessDescription email phone address website whatsapp avatar region role');
+      
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener perfil público' });
+  }
+});
+
+// @desc    Registrar vista de perfil (Separado para evitar duplicados en React)
+// @route   POST /api/users/:id/view
+router.post('/:id/view', async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.params.id, { $inc: { profileViews: 1 } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Error registrando vista' });
   }
 });
 

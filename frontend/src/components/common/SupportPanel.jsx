@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 export function SupportPanel() {
   const token = localStorage.getItem('token');
   const [tickets, setTickets] = useState([]); // Inicializado como array vacío
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ title: '', category: 'Soporte Software POS', priority: 'Media', description: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 🛡️ FUNCIÓN BLINDADA CONTRA ERRORES
   const loadTickets = async () => {
@@ -40,6 +42,11 @@ export function SupportPanel() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    const toastId = toast.loading('Enviando solicitud...');
+
     try {
         const res = await fetch('http://localhost:3000/api/tickets', {
             method: 'POST',
@@ -47,27 +54,28 @@ export function SupportPanel() {
             body: JSON.stringify(formData)
         });
         if (res.ok) {
-            alert("✅ Solicitud enviada correctamente.");
+            toast.success("✅ Solicitud enviada correctamente.", { id: toastId });
             setFormData({ title: '', category: 'Soporte Software POS', priority: 'Media', description: '' });
             setShowForm(false);
             loadTickets();
         } else {
-            alert("Hubo un problema al enviar el ticket.");
+            toast.error("Hubo un problema al enviar el ticket.", { id: toastId });
         }
-    } catch (error) { alert("Error de conexión"); }
+    } catch (error) { toast.error("Error de conexión", { id: toastId }); }
+    finally { setIsSubmitting(false); }
   };
 
   return (
     <div style={panelStyle}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px', borderBottom:'1px solid #eee', paddingBottom:'10px'}}>
-        <h3 style={{margin:0, color:'#2c3e50', fontSize:'1.1rem'}}>🛟 Soporte Técnico</h3>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'25px', borderBottom:'1px solid #eee', paddingBottom:'15px'}}>
+        <h2 style={{margin:0, color:'#2c3e50', fontSize:'1.5rem'}}>🛟 Soporte Técnico</h2>
         <button onClick={() => setShowForm(!showForm)} style={btnStyle}>
-            {showForm ? 'Cancelar' : '➕ Nuevo Ticket'}
+            {showForm ? '📋 Ver Mis Tickets' : '➕ Nuevo Ticket'}
         </button>
       </div>
 
       {showForm ? (
-        <form onSubmit={handleSubmit} style={{display:'flex', flexDirection:'column', gap:'10px', background:'#f8f9fa', padding:'15px', borderRadius:'8px'}}>
+        <form onSubmit={handleSubmit} style={{display:'flex', flexDirection:'column', gap:'15px', background:'#f8f9fa', padding:'25px', borderRadius:'8px', maxWidth: '700px', margin: '0 auto', width: '100%'}}>
             <input required placeholder="Asunto (ej: Falla impresora)" value={formData.title} onChange={e=>setFormData({...formData, title:e.target.value})} style={inputStyle} />
             <div style={{display:'flex', gap:'10px'}}>
                 <select style={inputStyle} value={formData.category} onChange={e=>setFormData({...formData, category:e.target.value})}>
@@ -84,10 +92,12 @@ export function SupportPanel() {
                 </select>
             </div>
             <textarea required placeholder="Describe el problema..." rows="3" value={formData.description} onChange={e=>setFormData({...formData, description:e.target.value})} style={inputStyle} />
-            <button type="submit" style={{...btnStyle, background:'#2ecc71', width:'100%'}}>Enviar Solicitud</button>
+            <button type="submit" disabled={isSubmitting} style={{...btnStyle, background: isSubmitting ? '#95a5a6' : '#2ecc71', width:'100%', cursor: isSubmitting ? 'not-allowed' : 'pointer'}}>
+                {isSubmitting ? 'Enviando...' : 'Enviar Solicitud'}
+            </button>
         </form>
       ) : (
-        <div style={{maxHeight:'300px', overflowY:'auto'}}>
+        <div>
             {/* Validamos tickets antes de medir su largo */}
             {!tickets || tickets.length === 0 ? (
                 <div style={{textAlign:'center', padding:'20px', color:'#999', fontSize:'0.9rem'}}>
@@ -105,6 +115,13 @@ export function SupportPanel() {
                                 }}>{t.status?.toUpperCase() || 'ABIERTO'}</span>
                             </div>
                             <div style={{fontSize:'0.8rem', color:'#666', marginTop:'2px'}}>{t.category}</div>
+
+                            {t.adminResponse && (
+                                <div style={{marginTop:'10px', padding:'10px', background:'#f1f9fe', borderRadius:'6px', borderLeft:'4px solid #3498db'}}>
+                                    <div style={{fontSize:'0.75rem', fontWeight:'bold', color:'#2980b9', marginBottom:'4px'}}>👨‍🔧 Respuesta Técnica:</div>
+                                    <div style={{fontSize:'0.85rem', color:'#333', lineHeight:'1.4'}}>{t.adminResponse}</div>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -115,7 +132,7 @@ export function SupportPanel() {
   );
 }
 
-const panelStyle = { background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', height: '100%' };
+const panelStyle = { background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxWidth: '1000px', margin: '0 auto' };
 const btnStyle = { padding: '6px 12px', background: '#3498db', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize:'0.85rem', fontWeight:'600' };
 const inputStyle = { padding: '8px', borderRadius: '6px', border: '1px solid #ddd', width: '100%', fontSize:'0.9rem' };
 const ticketItemStyle = { border: '1px solid #eee', padding: '12px', borderRadius: '8px', background: '#fff', transition:'all 0.2s' };

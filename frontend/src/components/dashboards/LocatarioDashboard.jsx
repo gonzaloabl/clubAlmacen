@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { ProfileSettings } from './ProfileSettings';
 import { KarmaWidget } from '../common/KarmaWidget'; // ✅ Widget Importado
@@ -7,9 +7,14 @@ import { useNavigate } from 'react-router-dom';
 import { SupportPanel } from '../common/SupportPanel';
 
 export function LocatarioDashboard() {
-  const { user } = useAuth();
+  const { user, loadUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inicio'); // Tabs: inicio, perfil, favoritos
+
+  // 🔄 Refrescar datos del usuario (Karma) al montar
+  useEffect(() => {
+    if (loadUser) loadUser();
+  }, []);
 
   // Renderizador de contenido según la Tab
   const renderContent = () => {
@@ -33,6 +38,10 @@ export function LocatarioDashboard() {
                 <span className={styles.actionIcon}>💬</span>
                 <span>Ir al Foro</span>
               </div>
+              <div className={styles.actionCard} onClick={() => navigate('/mercado')}>
+                <span className={styles.actionIcon}>🛒</span>
+                <span>Mercado</span>
+              </div>
               <div className={styles.actionCard} onClick={() => navigate('/directorio')}>
                 <span className={styles.actionIcon}>🚚</span>
                 <span>Buscar Proveedores</span>
@@ -41,12 +50,19 @@ export function LocatarioDashboard() {
                 <span className={styles.actionIcon}>📰</span>
                 <span>Ver Noticias</span>
               </div>
+              <div className={styles.actionCard} onClick={() => navigate('/herramientas')}>
+                <span className={styles.actionIcon}>🧰</span>
+                <span>Herramientas</span>
+              </div>
             </div>
           </div>
         );
 
       case 'perfil':
         return <ProfileSettings />;
+
+      case 'soporte':
+        return <SupportPanel />;
 
       default:
         return <div>Sección en construcción</div>;
@@ -71,12 +87,17 @@ export function LocatarioDashboard() {
             🏠 Resumen
           </button>
           <button 
+            className={activeTab === 'soporte' ? styles.active : ''} 
+            onClick={() => setActiveTab('soporte')}
+          >
+            🛟 Soporte
+          </button>
+          <button 
             className={activeTab === 'perfil' ? styles.active : ''} 
             onClick={() => setActiveTab('perfil')}
           >
             ⚙️ Mi Perfil
           </button>
-          <SupportPanel />
         </nav>
       </aside>
 

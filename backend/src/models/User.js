@@ -91,6 +91,18 @@ const userSchema = new mongoose.Schema({
   karma: {
     type: Number,
     default: 0
+  },
+  
+  // 🆕 Contador de Posts (Optimización)
+  postCount: {
+    type: Number,
+    default: 0
+  },
+
+  // 🆕 Contador de Vistas de Perfil (Para proveedores)
+  profileViews: {
+    type: Number,
+    default: 0
   }
   
 }, { timestamps: true });

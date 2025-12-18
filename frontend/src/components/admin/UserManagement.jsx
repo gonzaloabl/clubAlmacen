@@ -31,13 +31,21 @@ export function UserManagement() {
 
   // Filtro
   useEffect(() => {
-    const results = users.filter(u => 
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    if (!users) return;
+
+    const results = users.filter(u => {
+      // 1. Seguridad: Ocultarte a ti mismo (comparamos ID y Email por si acaso)
+      const isMe = (currentUser?._id && u._id === currentUser._id) || (currentUser?.email && u.email === currentUser.email);
+      if (isMe) return false;
+
+      // 2. Búsqueda normal
+      return u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+
     setFilteredUsers(results);
     setCurrentPage(1); // Reset a pág 1 al buscar
-  }, [searchTerm, users]);
+  }, [searchTerm, users, currentUser]);
 
   // Lógica de Paginación
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -45,21 +53,36 @@ export function UserManagement() {
   const currentItems = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
 
-  const toggleBan = async (targetUser) => {
+  const executeToggleBan = async (targetUser) => {
     const isCurrentlyActive = targetUser.isActive !== false; 
     const newStatus = !isCurrentlyActive; 
     const actionText = newStatus ? "ACTIVADO" : "BANEADO";
 
     // Optimistic UI Update
     setUsers(prev => prev.map(u => u._id === targetUser._id ? { ...u, isActive: newStatus } : u));
-    toast.success(`Usuario ${actionText} exitosamente`); // Feedback inmediato
 
     try {
       await userAPI.updateUserStatus(targetUser._id, { isActive: newStatus });
+      toast.success(`Usuario ${actionText} exitosamente`);
     } catch (error) {
       toast.error("Error en servidor. Revertiendo...");
       setUsers(prev => prev.map(u => u._id === targetUser._id ? { ...u, isActive: isCurrentlyActive } : u));
     }
+  };
+
+  const confirmToggleBan = (targetUser) => {
+    const isActive = targetUser.isActive !== false;
+    const action = isActive ? 'BANEAR' : 'ACTIVAR';
+
+    toast((t) => (
+      <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+        <span style={{fontSize:'0.9rem'}}>⚠️ ¿Confirmas <b>{action}</b> a {targetUser.name}?</span>
+        <div style={{display:'flex', gap:'8px', justifyContent:'flex-end'}}>
+          <button onClick={() => { toast.dismiss(t.id); executeToggleBan(targetUser); }} style={{background:'#e74c3c', color:'white', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.85rem'}}>Sí, {action.toLowerCase()}</button>
+          <button onClick={() => toast.dismiss(t.id)} style={{background:'#ecf0f1', color:'#333', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.85rem'}}>Cancelar</button>
+        </div>
+      </div>
+    ), { duration: 5000, icon: '🚫' });
   };
 
   const makeProvider = async (targetUser) => {
@@ -132,16 +155,12 @@ export function UserManagement() {
                 </td>
 
                 <td>
-                  {u._id !== currentUser._id && (
-                     <>
-                        <button 
-                           onClick={() => toggleBan(u)}
-                           className={`${styles.btnAction} ${isUserActive ? styles.btnBan : styles.btnUnban}`}
-                        >
-                           {isUserActive ? 'Banear' : 'Activar'}
-                        </button>
-                     </>
-                  )}
+                  <button 
+                      onClick={() => confirmToggleBan(u)}
+                      className={`${styles.btnAction} ${isUserActive ? styles.btnBan : styles.btnUnban}`}
+                  >
+                      {isUserActive ? 'Banear' : 'Activar'}
+                  </button>
                 </td>
               </tr>
             )})} 
